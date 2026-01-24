@@ -33,6 +33,9 @@ const BrickBreakerGame: React.FC = () => {
     lives: 3,
     level: 1,
     highScore: getStoredHighScore(),
+    coins: 0,
+    combo: 0,
+    maxCombo: 0,
   });
 
   const [isNewHighScore, setIsNewHighScore] = useState(false);
@@ -56,6 +59,9 @@ const BrickBreakerGame: React.FC = () => {
       lives: 3,
       level: 1,
       highScore: getStoredHighScore(),
+      coins: 0,
+      combo: 0,
+      maxCombo: 0,
     });
   }, []);
 
@@ -95,6 +101,14 @@ const BrickBreakerGame: React.FC = () => {
     setGameState(prev => ({ ...prev, score: newScore }));
   }, []);
 
+  const handleComboChange = useCallback((newCombo: number) => {
+    setGameState(prev => ({ 
+      ...prev, 
+      combo: newCombo,
+      maxCombo: Math.max(prev.maxCombo, newCombo),
+    }));
+  }, []);
+
   const handleRestart = useCallback(() => {
     setIsNewHighScore(false);
     setGameState(prev => ({
@@ -103,6 +117,9 @@ const BrickBreakerGame: React.FC = () => {
       score: 0,
       lives: 3,
       level: 1,
+      coins: 0,
+      combo: 0,
+      maxCombo: 0,
     }));
   }, []);
 
