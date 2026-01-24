@@ -1,4 +1,4 @@
-import { Ball, Brick, Paddle, PowerUp, PowerUpType, BrickColor } from '@/types/game';
+import { Ball, Brick, Paddle, PowerUp, PowerUpType, BrickColor, BrickType, Coin, Explosion, Laser } from '@/types/game';
 
 export const GAME_WIDTH = 400;
 export const GAME_HEIGHT = 600;
@@ -31,6 +31,17 @@ export const checkBallBrickCollision = (ball: Ball, brick: Brick): boolean => {
   );
 };
 
+export const checkLaserBrickCollision = (laser: Laser, brick: Brick): boolean => {
+  if (brick.destroyed) return false;
+  
+  return (
+    laser.x > brick.x &&
+    laser.x < brick.x + brick.width &&
+    laser.y > brick.y &&
+    laser.y < brick.y + brick.height
+  );
+};
+
 export const calculateBounceAngle = (ball: Ball, paddle: Paddle): number => {
   const hitPoint = (ball.position.x - paddle.x) / paddle.width;
   const angle = (hitPoint - 0.5) * Math.PI * 0.7;
@@ -45,8 +56,31 @@ export const getBrickColor = (color: BrickColor): string => {
     green: 'hsl(150, 100%, 45%)',
     orange: 'hsl(25, 100%, 55%)',
     purple: 'hsl(280, 100%, 60%)',
+    red: 'hsl(0, 100%, 50%)',
+    gold: 'hsl(45, 100%, 55%)',
   };
   return colors[color];
+};
+
+export const getBrickTypeStyle = (type: BrickType): { glow: string; pattern?: string } => {
+  switch (type) {
+    case 'explosive':
+      return { glow: 'hsl(0, 100%, 60%)', pattern: 'explosive' };
+    case 'indestructible':
+      return { glow: 'hsl(220, 20%, 40%)', pattern: 'metal' };
+    case 'moving':
+      return { glow: 'hsl(280, 100%, 60%)', pattern: 'arrows' };
+    case 'chain':
+      return { glow: 'hsl(50, 100%, 60%)', pattern: 'chain' };
+    case 'coin':
+      return { glow: 'hsl(45, 100%, 55%)', pattern: 'coin' };
+    case 'rainbow':
+      return { glow: 'hsl(300, 100%, 60%)', pattern: 'rainbow' };
+    case 'ghost':
+      return { glow: 'hsl(200, 50%, 70%)', pattern: 'ghost' };
+    default:
+      return { glow: 'hsl(180, 100%, 50%)' };
+  }
 };
 
 export const getBrickGradient = (color: BrickColor, hits: number, maxHits: number): string => {
@@ -58,18 +92,20 @@ export const getBrickGradient = (color: BrickColor, hits: number, maxHits: numbe
     green: ['hsl(150, 100%, 55%)', 'hsl(160, 100%, 35%)'],
     orange: ['hsl(25, 100%, 65%)', 'hsl(15, 100%, 45%)'],
     purple: ['hsl(280, 100%, 70%)', 'hsl(270, 100%, 50%)'],
+    red: ['hsl(0, 100%, 65%)', 'hsl(350, 100%, 45%)'],
+    gold: ['hsl(45, 100%, 70%)', 'hsl(35, 100%, 50%)'],
   };
   const [light, dark] = colors[color];
   return `linear-gradient(180deg, ${light} 0%, ${dark} 100%)`;
 };
 
 export const shouldDropPowerUp = (): boolean => {
-  return Math.random() < 0.15;
+  return Math.random() < 0.18;
 };
 
 export const getRandomPowerUpType = (): PowerUpType => {
-  const types: PowerUpType[] = ['widen', 'multiball', 'slow', 'extralife', 'fireball'];
-  const weights = [0.3, 0.25, 0.2, 0.1, 0.15];
+  const types: PowerUpType[] = ['widen', 'multiball', 'slow', 'extralife', 'fireball', 'laser', 'magnet', 'shield', 'shrink', 'speedup'];
+  const weights = [0.18, 0.15, 0.12, 0.08, 0.12, 0.10, 0.08, 0.07, 0.05, 0.05];
   
   const random = Math.random();
   let cumulative = 0;
@@ -103,6 +139,11 @@ export const getPowerUpColor = (type: PowerUpType): string => {
     slow: 'hsl(50, 100%, 55%)',
     extralife: 'hsl(150, 100%, 45%)',
     fireball: 'hsl(25, 100%, 55%)',
+    laser: 'hsl(0, 100%, 50%)',
+    magnet: 'hsl(280, 100%, 60%)',
+    shield: 'hsl(200, 100%, 60%)',
+    shrink: 'hsl(0, 60%, 40%)',
+    speedup: 'hsl(30, 60%, 40%)',
   };
   return colors[type];
 };
@@ -114,6 +155,123 @@ export const getPowerUpLabel = (type: PowerUpType): string => {
     slow: 'S',
     extralife: '+1',
     fireball: 'F',
+    laser: 'L',
+    magnet: '◎',
+    shield: '⬡',
+    shrink: '←→',
+    speedup: '⚡',
   };
   return labels[type];
+};
+
+export const isNegativePowerUp = (type: PowerUpType): boolean => {
+  return type === 'shrink' || type === 'speedup';
+};
+
+export const createCoin = (x: number, y: number, value: number = 10): Coin => {
+  return {
+    id: generateId(),
+    x,
+    y,
+    velocity: 120,
+    value,
+  };
+};
+
+export const createExplosion = (x: number, y: number, radius: number = 80): Explosion => {
+  return {
+    id: generateId(),
+    x,
+    y,
+    radius: 0,
+    maxRadius: radius,
+    life: 1,
+  };
+};
+
+export const getBricksInExplosionRadius = (
+  explosion: { x: number; y: number; radius: number },
+  bricks: Brick[]
+): Brick[] => {
+  return bricks.filter(brick => {
+    if (brick.destroyed || brick.type === 'indestructible') return false;
+    
+    const brickCenterX = brick.x + brick.width / 2;
+    const brickCenterY = brick.y + brick.height / 2;
+    
+    const distance = Math.sqrt(
+      Math.pow(brickCenterX - explosion.x, 2) +
+      Math.pow(brickCenterY - explosion.y, 2)
+    );
+    
+    return distance < explosion.radius;
+  });
+};
+
+export const getChainedBricks = (
+  brick: Brick,
+  bricks: Brick[],
+  visited: Set<string> = new Set()
+): Brick[] => {
+  if (visited.has(brick.id)) return [];
+  visited.add(brick.id);
+  
+  const chainedBricks: Brick[] = [brick];
+  
+  // Find adjacent chain bricks
+  bricks.forEach(other => {
+    if (
+      other.type === 'chain' &&
+      !other.destroyed &&
+      !visited.has(other.id) &&
+      Math.abs(other.x - brick.x) <= brick.width + 5 &&
+      Math.abs(other.y - brick.y) <= brick.height + 5
+    ) {
+      chainedBricks.push(...getChainedBricks(other, bricks, visited));
+    }
+  });
+  
+  return chainedBricks;
+};
+
+export const updateMovingBricks = (bricks: Brick[], deltaTime: number): Brick[] => {
+  return bricks.map(brick => {
+    if (brick.type !== 'moving' || brick.destroyed) return brick;
+    
+    const speed = brick.moveSpeed || 50;
+    const range = brick.moveRange || 40;
+    const originalX = brick.originalX ?? brick.x;
+    
+    let newX = brick.x + (brick.moveDirection || 1) * speed * deltaTime;
+    let newDirection = brick.moveDirection || 1;
+    
+    if (newX > originalX + range) {
+      newX = originalX + range;
+      newDirection = -1;
+    } else if (newX < originalX - range) {
+      newX = originalX - range;
+      newDirection = 1;
+    }
+    
+    return {
+      ...brick,
+      x: newX,
+      moveDirection: newDirection,
+      originalX,
+    };
+  });
+};
+
+export const updateGhostBricks = (bricks: Brick[], time: number): Brick[] => {
+  return bricks.map(brick => {
+    if (brick.type !== 'ghost') return brick;
+    
+    // Ghost bricks appear/disappear based on time
+    const phase = Math.sin(time * 2) > 0;
+    return {
+      ...brick,
+      // We use hits to track visibility (0 = invisible, > 0 = visible)
+      // Ghost bricks can't actually be destroyed when invisible
+    };
+  });
 };
