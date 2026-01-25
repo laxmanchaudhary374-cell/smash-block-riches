@@ -26,6 +26,7 @@ import {
   getChainedBricks,
   updateMovingBricks,
 } from '@/utils/gameUtils';
+import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -72,12 +73,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
 
-  // Initialize level
+  // Initialize level - also reinitialize when level changes
   useEffect(() => {
-    if (gameState.status === 'playing' && bricks.length === 0) {
+    if (gameState.status === 'playing') {
       const levelIndex = Math.min(gameState.level - 1, levels.length - 1);
       const level = levels[levelIndex];
       
+      // Always reinitialize bricks when level changes
       const newBricks: Brick[] = level.bricks.map((brick) => ({
         ...brick,
         id: generateId(),
@@ -719,24 +721,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.translate(shakeX, shakeY);
     }
 
-    // Clear
-    ctx.fillStyle = 'hsl(240, 20%, 4%)';
+    // Clear with deep blue gradient background (matching reference)
+    const bgGradient = ctx.createRadialGradient(
+      GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 0,
+      GAME_WIDTH / 2, GAME_HEIGHT * 0.5, GAME_HEIGHT
+    );
+    bgGradient.addColorStop(0, 'hsl(215, 60%, 18%)');
+    bgGradient.addColorStop(0.5, 'hsl(215, 65%, 12%)');
+    bgGradient.addColorStop(1, 'hsl(220, 70%, 6%)');
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(-10, -10, GAME_WIDTH + 20, GAME_HEIGHT + 20);
 
-    // Draw grid effect
-    ctx.strokeStyle = 'hsla(180, 100%, 50%, 0.03)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < GAME_WIDTH; i += 20) {
+    // Subtle star/dust particles in background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    for (let i = 0; i < 30; i++) {
+      const starX = ((i * 137) % GAME_WIDTH);
+      const starY = ((i * 89) % GAME_HEIGHT);
+      const starSize = (i % 3) + 0.5;
       ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, GAME_HEIGHT);
-      ctx.stroke();
-    }
-    for (let i = 0; i < GAME_HEIGHT; i += 20) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(GAME_WIDTH, i);
-      ctx.stroke();
+      ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // Draw shield at bottom
@@ -775,7 +779,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fill();
     });
 
-    // Draw bricks
+    // Draw bricks with premium 3D rendering
     bricks.forEach(brick => {
       if (brick.destroyed) return;
       
@@ -785,81 +789,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.globalAlpha = 0.3 + visibility * 0.7;
       }
       
-      const gradient = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.height);
-      const opacity = 0.5 + (brick.hits / brick.maxHits) * 0.5;
-      
-      const baseColor = getBrickColor(brick.color);
-      const typeStyle = getBrickTypeStyle(brick.type);
-      
-      gradient.addColorStop(0, baseColor.replace(')', `, ${opacity})`).replace('hsl', 'hsla'));
-      gradient.addColorStop(1, baseColor.replace(')', `, ${opacity * 0.7})`).replace('hsl', 'hsla'));
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.roundRect(brick.x, brick.y, brick.width, brick.height, 4);
-      ctx.fill();
-      
-      // Special brick indicators
-      if (brick.type === 'explosive') {
-        // Draw explosion icon
-        ctx.fillStyle = 'hsla(0, 100%, 100%, 0.9)';
-        ctx.font = 'bold 14px Rajdhani';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('💥', brick.x + brick.width / 2, brick.y + brick.height / 2);
-      } else if (brick.type === 'indestructible') {
-        // Metal pattern
-        ctx.strokeStyle = 'hsla(220, 20%, 60%, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(brick.x + 5, brick.y + 5);
-        ctx.lineTo(brick.x + brick.width - 5, brick.y + brick.height - 5);
-        ctx.moveTo(brick.x + brick.width - 5, brick.y + 5);
-        ctx.lineTo(brick.x + 5, brick.y + brick.height - 5);
-        ctx.stroke();
-      } else if (brick.type === 'moving') {
-        // Draw arrows
-        ctx.fillStyle = 'hsla(280, 100%, 90%, 0.8)';
-        ctx.font = 'bold 12px Rajdhani';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('↔', brick.x + brick.width / 2, brick.y + brick.height / 2);
-      } else if (brick.type === 'chain') {
-        // Chain link
-        ctx.strokeStyle = 'hsla(50, 100%, 80%, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(brick.x + brick.width / 2, brick.y + brick.height / 2, 6, 0, Math.PI * 2);
-        ctx.stroke();
-      } else if (brick.type === 'coin') {
-        ctx.fillStyle = 'hsla(45, 100%, 90%, 0.9)';
-        ctx.font = 'bold 14px Rajdhani';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('$', brick.x + brick.width / 2, brick.y + brick.height / 2);
-      } else if (brick.type === 'rainbow') {
-        // Rainbow shimmer
-        const hue = (gameTime * 100) % 360;
-        ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
-        ctx.shadowBlur = 15;
-      }
-      
-      // Glow effect
-      ctx.shadowColor = typeStyle.glow;
-      ctx.shadowBlur = brick.type === 'indestructible' ? 5 : 10;
-      ctx.strokeStyle = baseColor;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      
-      // Hit indicator
-      if (brick.maxHits > 1 && brick.type !== 'indestructible' && !['explosive', 'moving', 'chain', 'coin'].includes(brick.type)) {
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Rajdhani';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(brick.hits.toString(), brick.x + brick.width / 2, brick.y + brick.height / 2);
-      }
+      // Use premium 3D brick renderer
+      drawPremiumBrick(ctx, brick, gameTime);
       
       ctx.globalAlpha = 1;
     });
@@ -918,55 +849,21 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillText(getPowerUpLabel(powerUp.type), powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
     });
 
-    // Draw paddle
-    const paddleGradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
-    
-    if (paddle.hasLaser) {
-      paddleGradient.addColorStop(0, 'hsl(0, 100%, 60%)');
-      paddleGradient.addColorStop(1, 'hsl(0, 100%, 40%)');
-      ctx.shadowColor = 'hsl(0, 100%, 50%)';
-    } else if (paddle.hasMagnet) {
-      paddleGradient.addColorStop(0, 'hsl(280, 100%, 60%)');
-      paddleGradient.addColorStop(1, 'hsl(280, 100%, 40%)');
-      ctx.shadowColor = 'hsl(280, 100%, 50%)';
-    } else {
-      paddleGradient.addColorStop(0, 'hsl(180, 100%, 60%)');
-      paddleGradient.addColorStop(1, 'hsl(180, 100%, 40%)');
-      ctx.shadowColor = 'hsl(180, 100%, 50%)';
-    }
-    
-    ctx.fillStyle = paddleGradient;
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.roundRect(paddle.x, paddle.y, paddle.width, paddle.height, 6);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    // Draw paddle with premium 3D rendering
+    drawPremiumPaddle(
+      ctx,
+      paddle.x,
+      paddle.y,
+      paddle.width,
+      paddle.height + 8, // Make paddle taller for 3D effect
+      paddle.hasLaser,
+      paddle.hasMagnet,
+      paddle.hasShield
+    );
 
-    // Draw balls
+    // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-      const ballGradient = ctx.createRadialGradient(
-        ball.position.x - 2, ball.position.y - 2, 0,
-        ball.position.x, ball.position.y, ball.radius
-      );
-      
-      if (isFireball) {
-        ballGradient.addColorStop(0, 'hsl(50, 100%, 90%)');
-        ballGradient.addColorStop(0.5, 'hsl(30, 100%, 60%)');
-        ballGradient.addColorStop(1, 'hsl(10, 100%, 50%)');
-        ctx.shadowColor = 'hsl(25, 100%, 55%)';
-      } else {
-        ballGradient.addColorStop(0, 'hsl(180, 100%, 90%)');
-        ballGradient.addColorStop(0.5, 'hsl(180, 100%, 60%)');
-        ballGradient.addColorStop(1, 'hsl(180, 100%, 40%)');
-        ctx.shadowColor = 'hsl(180, 100%, 50%)';
-      }
-      
-      ctx.fillStyle = ballGradient;
-      ctx.shadowBlur = 25;
-      ctx.beginPath();
-      ctx.arc(ball.position.x, ball.position.y, ball.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball);
     });
 
     // Draw particles
