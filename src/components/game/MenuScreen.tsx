@@ -102,7 +102,7 @@ const MenuScreen: React.FC<MenuScreenProps> = ({ highScore, onStartGame }) => {
 
       {/* Version */}
       <div className="mt-6 text-muted-foreground/50 font-game text-xs">
-        v2.0 • 12 Levels • Made for Mobile
+        v3.0 • 100 Levels • Made for Mobile
       </div>
     </div>
   );

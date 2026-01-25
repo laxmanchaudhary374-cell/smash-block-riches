@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Ball, Brick, Paddle, PowerUp, Particle, GameState, Laser, Coin, Explosion } from '@/types/game';
 import { useGameLoop } from '@/hooks/useGameLoop';
-import { levels } from '@/utils/levels';
+import { levels } from '@/utils/levels/index';
 import {
   GAME_WIDTH,
   GAME_HEIGHT,
@@ -997,6 +997,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, isFireball, screenShake, gameTime, combo]);
 
+  // Set up HiDPI canvas rendering
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = GAME_WIDTH * dpr;
+    canvas.height = GAME_HEIGHT * dpr;
+    canvas.style.width = `${GAME_WIDTH}px`;
+    canvas.style.height = `${GAME_HEIGHT}px`;
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.scale(dpr, dpr);
+    }
+  }, []);
+
   return (
     <div 
       ref={containerRef}
@@ -1004,12 +1021,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     >
       <canvas
         ref={canvasRef}
-        width={GAME_WIDTH}
-        height={GAME_HEIGHT}
         className="w-full h-auto rounded-lg box-glow-cyan"
         style={{ 
           aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
-          imageRendering: 'crisp-edges',
         }}
       />
     </div>

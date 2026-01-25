@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowRight, Star, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GameState } from '@/types/game';
-import { getTotalLevels } from '@/utils/levels';
+import { getTotalLevels } from '@/utils/levels/index';
 
 interface LevelCompleteScreenProps {
   gameState: GameState;

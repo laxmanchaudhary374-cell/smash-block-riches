@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { GameState } from '@/types/game';
-import { getTotalLevels } from '@/utils/levels';
+import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
 import GameUI from './GameUI';
 import MenuScreen from './MenuScreen';
