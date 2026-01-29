@@ -1,14 +1,7 @@
 import { LevelConfig } from '@/types/game';
-import { levels1to25 } from './levels1to25';
-import { levels26to50 } from './levels26to50';
-import { levels51to75 } from './levels51to75';
-import { levels76to100 } from './levels76to100';
+import { generateAllLevels } from './levelGenerator';
 
-export const levels: LevelConfig[] = [
-  ...levels1to25,
-  ...levels26to50,
-  ...levels51to75,
-  ...levels76to100,
-];
+// Generate all 500 levels dynamically
+export const levels: LevelConfig[] = generateAllLevels();
 
 export const getTotalLevels = () => levels.length;
