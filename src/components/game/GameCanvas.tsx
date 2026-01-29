@@ -236,7 +236,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     };
 
-    const releaseMagnetBall = useCallback(() => {
+    const releaseMagnetBall = () => {
       if (magnetBallRef.current) {
         const ballId = magnetBallRef.current.id;
         magnetBallRef.current = null;
@@ -254,7 +254,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           return ball;
         }));
       }
-    }, [ballSpeed]);
+    };
 
     const handleTouchStart = (e: TouchEvent) => {
       if (gameState.status === 'playing' && e.touches.length > 0) {
