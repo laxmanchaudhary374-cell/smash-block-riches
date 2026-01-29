@@ -120,15 +120,16 @@ export const getRandomPowerUpType = (): PowerUpType => {
   return 'widen';
 };
 
+// Power-ups are now larger and more visible
 export const createPowerUp = (x: number, y: number): PowerUp => {
   return {
     id: generateId(),
     type: getRandomPowerUpType(),
-    x: x - 15,
+    x: x - 25, // Centered based on new width
     y,
-    width: 30,
-    height: 15,
-    velocity: 150,
+    width: 50,  // Bigger power-up
+    height: 26, // Bigger power-up
+    velocity: 130, // Slightly slower for visibility
   };
 };
 
