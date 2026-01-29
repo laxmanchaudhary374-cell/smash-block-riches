@@ -25,8 +25,8 @@ const getDifficultyParams = (level: number) => {
     coinChance: 0.08 - tier * 0.005,
     ghostChance: tier >= 2 ? 0.03 + tier * 0.01 : 0,
     rainbowChance: tier >= 1 ? 0.02 + tier * 0.005 : 0,
-    rows: Math.min(4 + Math.floor(tier / 2), 8),
-    cols: 6,
+    rows: Math.min(5 + Math.floor(tier / 2), 10), // More rows with smaller bricks
+    cols: 8, // More columns with smaller bricks
   };
 };
 
