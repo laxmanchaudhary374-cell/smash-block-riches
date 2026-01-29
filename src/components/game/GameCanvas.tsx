@@ -14,11 +14,9 @@ import {
   checkLaserBrickCollision,
   calculateBounceAngle,
   getBrickColor,
-  getBrickTypeStyle,
   shouldDropPowerUp,
   createPowerUp,
   getPowerUpColor,
-  getPowerUpLabel,
   isNegativePowerUp,
   createCoin,
   createExplosion,
@@ -27,6 +25,7 @@ import {
   updateMovingBricks,
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
+import { drawPowerUp } from '@/utils/powerUpRenderer';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -237,26 +236,52 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     };
 
+    const releaseMagnetBall = useCallback(() => {
+      if (magnetBallRef.current) {
+        const ballId = magnetBallRef.current.id;
+        magnetBallRef.current = null;
+        // Give the ball velocity when released
+        setBalls(prevBalls => prevBalls.map(ball => {
+          if (ball.id === ballId) {
+            return {
+              ...ball,
+              velocity: { 
+                dx: (Math.random() - 0.5) * 150, 
+                dy: -ballSpeed 
+              },
+            };
+          }
+          return ball;
+        }));
+      }
+    }, [ballSpeed]);
+
     const handleTouchStart = (e: TouchEvent) => {
       if (gameState.status === 'playing' && e.touches.length > 0) {
         handlePointerMove(e.touches[0].clientX);
-        fireLaser();
+        // Release magnet ball on touch
+        if (magnetBallRef.current) {
+          releaseMagnetBall();
+        } else {
+          fireLaser();
+        }
       }
     };
 
     const handleClick = () => {
       if (gameState.status === 'playing') {
-        fireLaser();
-        // Release magnet ball
+        // Release magnet ball on click
         if (magnetBallRef.current) {
-          magnetBallRef.current = null;
+          releaseMagnetBall();
+        } else {
+          fireLaser();
         }
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
     window.addEventListener('click', handleClick);
 
     return () => {
@@ -265,7 +290,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('click', handleClick);
     };
-  }, [gameState.status, handlePointerMove, fireLaser]);
+  }, [gameState.status, handlePointerMove, fireLaser, ballSpeed]);
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
@@ -821,32 +846,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.shadowBlur = 0;
     });
 
-    // Draw power-ups
+    // Draw power-ups with icons
     powerUps.forEach(powerUp => {
-      const color = getPowerUpColor(powerUp.type);
-      const isNegative = isNegativePowerUp(powerUp.type);
-      
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.roundRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height, 4);
-      ctx.fill();
-      
-      // Warning border for negative powerups
-      if (isNegative) {
-        ctx.strokeStyle = 'hsl(0, 100%, 30%)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-      
-      ctx.shadowBlur = 0;
-      
-      ctx.fillStyle = isNegative ? 'white' : 'black';
-      ctx.font = 'bold 10px Rajdhani';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(getPowerUpLabel(powerUp.type), powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
+      drawPowerUp(ctx, powerUp, gameTime);
     });
 
     // Draw paddle with premium 3D rendering

@@ -84,6 +84,7 @@ const BrickBreakerGame: React.FC = () => {
       ...prev,
       status: 'playing',
       level: prev.level + 1,
+      lives: 3, // Reset lives for each new level
     }));
   }, []);
 
