@@ -6,7 +6,8 @@ import GameUI from './GameUI';
 import MenuScreen from './MenuScreen';
 import GameOverScreen from './GameOverScreen';
 import LevelCompleteScreen from './LevelCompleteScreen';
-
+import AudioControls from './AudioControls';
+import { audioManager } from '@/utils/audioManager';
 const STORAGE_KEY = 'neon_breaker_highscore';
 
 const getStoredHighScore = (): number => {
@@ -124,18 +125,30 @@ const BrickBreakerGame: React.FC = () => {
     }));
   }, []);
 
+  // Play sounds on game state changes
+  useEffect(() => {
+    if (gameState.status === 'levelcomplete' || gameState.status === 'won') {
+      audioManager.playLevelComplete();
+    } else if (gameState.status === 'gameover') {
+      audioManager.playGameOver();
+    }
+  }, [gameState.status]);
+
   if (gameState.status === 'menu') {
     return (
-      <MenuScreen
-        highScore={gameState.highScore}
-        onStartGame={handleStartGame}
-      />
+      <>
+        <AudioControls isPlaying={false} />
+        <MenuScreen
+          highScore={gameState.highScore}
+          onStartGame={handleStartGame}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 select-none">
-      {/* Header */}
+      <AudioControls isPlaying={gameState.status === 'playing'} />
       <div className="mb-4 text-center">
         <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">
           NEON BREAKER
