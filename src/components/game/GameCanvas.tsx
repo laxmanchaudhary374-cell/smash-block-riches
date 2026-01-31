@@ -26,6 +26,7 @@ import {
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
 import { drawPowerUp } from '@/utils/powerUpRenderer';
+import { audioManager } from '@/utils/audioManager';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -157,6 +158,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const explosion = createExplosion(x, y, 90);
     setExplosions(prev => [...prev, explosion]);
     triggerScreenShake(8);
+    audioManager.playExplosion();
     
     // Create lots of particles
     createParticles(x, y, 'hsl(25, 100%, 55%)', 20);
@@ -169,6 +171,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (brick.destroyed || brick.type === 'indestructible') return null;
     
     const scoreValue = brick.maxHits * 10 * (1 + combo * 0.1);
+    
+    audioManager.playBrickDestroy();
+    if (combo > 1) {
+      audioManager.playCombo(combo);
+    }
     
     createParticles(
       brick.x + brick.width / 2,
@@ -214,6 +221,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Fire laser
   const fireLaser = useCallback(() => {
     if (paddle.hasLaser) {
+      audioManager.playLaser();
       setLasers(prev => [
         ...prev,
         { id: generateId(), x: paddle.x + 10, y: paddle.y, speed: 600 },
@@ -240,6 +248,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (magnetBallRef.current) {
         const ballId = magnetBallRef.current.id;
         magnetBallRef.current = null;
+        audioManager.playMagnetRelease();
         // Give the ball velocity when released
         setBalls(prevBalls => prevBalls.map(ball => {
           if (ball.id === ballId) {
@@ -352,14 +361,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (x - ball.radius < 0) {
           x = ball.radius;
           dx = Math.abs(dx);
+          audioManager.playWallBounce();
         }
         if (x + ball.radius > GAME_WIDTH) {
           x = GAME_WIDTH - ball.radius;
           dx = -Math.abs(dx);
+          audioManager.playWallBounce();
         }
         if (y - ball.radius < 0) {
           y = ball.radius;
           dy = Math.abs(dy);
+          audioManager.playWallBounce();
         }
 
         return {
@@ -386,6 +398,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       
       if (aliveBalls.length === 0 && prevBalls.length > 0) {
         // Lost a life
+        audioManager.playBallLost();
         setGameState(prev => {
           const newLives = prev.lives - 1;
           if (newLives <= 0) {
@@ -418,11 +431,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           const angle = calculateBounceAngle(ball, paddle);
           const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2);
           
+          audioManager.playPaddleHit();
           createParticles(ball.position.x, ball.position.y, 'hsl(180, 100%, 50%)', 4);
           
           // Magnet catches ball
           if (paddle.hasMagnet) {
             magnetBallRef.current = ball;
+            audioManager.playMagnetCatch();
           }
           
           return {
@@ -643,6 +658,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               break;
             case 'extralife':
               setGameState(prev => ({ ...prev, lives: prev.lives + 1 }));
+              audioManager.playExtraLife();
               break;
             case 'fireball':
               setIsFireball(true);
@@ -664,8 +680,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           const color = getPowerUpColor(powerUp.type);
           createParticles(powerUp.x + powerUp.width / 2, powerUp.y, color, 10);
           
-          // Add coins for positive powerups
-          if (!isNegativePowerUp(powerUp.type)) {
+          // Play sound and add coins
+          if (isNegativePowerUp(powerUp.type)) {
+            audioManager.playPowerDown();
+          } else {
+            audioManager.playPowerUp();
             setGameState(prev => ({ ...prev, coins: prev.coins + 5 }));
           }
           
@@ -693,6 +712,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ) {
           setGameState(prev => ({ ...prev, coins: prev.coins + coin.value }));
           createParticles(coin.x, coin.y, 'hsl(45, 100%, 55%)', 8);
+          audioManager.playCoinCollect();
           return false;
         }
         
