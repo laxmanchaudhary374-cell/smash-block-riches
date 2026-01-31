@@ -230,25 +230,53 @@ class AudioManager {
     this.playSynth(600, 0.1, 'sine', true);
   }
 
-  // Generate and start background music (procedural chiptune)
-  startBackgroundMusic(): void {
+  // Start background music from MP3 file
+  async startBackgroundMusic(): Promise<void> {
     if (!this.audioContext || !this.musicGain || this.isMusicPlaying) return;
 
     this.isMusicPlaying = true;
-    this.playMusicLoop();
+
+    try {
+      // Load the MP3 file if not already loaded
+      if (!this.musicBuffer) {
+        const response = await fetch('/audio/background-music.mp3');
+        const arrayBuffer = await response.arrayBuffer();
+        this.musicBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+      }
+
+      this.playMusicFromBuffer();
+    } catch (e) {
+      console.warn('Failed to load background music:', e);
+      // Fallback to procedural music
+      this.playProceduralMusicLoop();
+    }
   }
 
-  private playMusicLoop(): void {
+  private playMusicFromBuffer(): void {
+    if (!this.audioContext || !this.musicGain || !this.musicBuffer || !this.isMusicPlaying) return;
+
+    // Stop any existing music
+    if (this.backgroundMusic) {
+      this.backgroundMusic.stop();
+    }
+
+    this.backgroundMusic = this.audioContext.createBufferSource();
+    this.backgroundMusic.buffer = this.musicBuffer;
+    this.backgroundMusic.loop = true;
+    this.backgroundMusic.connect(this.musicGain);
+    this.backgroundMusic.start();
+  }
+
+  private playProceduralMusicLoop(): void {
     if (!this.audioContext || !this.musicGain || !this.isMusicPlaying) return;
 
-    // Simple procedural bass and melody pattern
-    const bassNotes = [65, 82, 73, 87]; // C2, E2, D2, F2
-    const melodyNotes = [262, 330, 294, 349, 392, 330, 294, 262]; // Simple melody
+    // Simple procedural bass and melody pattern (fallback)
+    const bassNotes = [65, 82, 73, 87];
+    const melodyNotes = [262, 330, 294, 349, 392, 330, 294, 262];
 
     const bpm = 120;
     const beatDuration = 60 / bpm;
 
-    // Play bass pattern
     bassNotes.forEach((freq, i) => {
       setTimeout(() => {
         if (this.isMusicPlaying && this.audioContext && this.musicGain) {
@@ -266,7 +294,6 @@ class AudioManager {
       }, i * beatDuration * 1000);
     });
 
-    // Play melody pattern  
     melodyNotes.forEach((freq, i) => {
       setTimeout(() => {
         if (this.isMusicPlaying && this.audioContext && this.musicGain) {
@@ -284,10 +311,9 @@ class AudioManager {
       }, i * beatDuration * 500);
     });
 
-    // Loop after pattern completes
     setTimeout(() => {
       if (this.isMusicPlaying) {
-        this.playMusicLoop();
+        this.playProceduralMusicLoop();
       }
     }, bassNotes.length * beatDuration * 1000);
   }
