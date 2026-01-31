@@ -89,6 +89,15 @@ const BrickBreakerGame: React.FC = () => {
     }));
   }, []);
 
+  const handleReplayLevel = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      status: 'playing',
+      lives: 3,
+      // Keep the same level to replay it
+    }));
+  }, []);
+
   const handleMainMenu = useCallback(() => {
     setGameState(prev => ({
       ...prev,
@@ -182,6 +191,7 @@ const BrickBreakerGame: React.FC = () => {
           <LevelCompleteScreen
             gameState={gameState}
             onNextLevel={handleNextLevel}
+            onReplay={handleReplayLevel}
             onMainMenu={handleMainMenu}
           />
         )}

@@ -96,46 +96,51 @@ const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.fill();
 };
 
-// Draw electric/slow ball (cyan glowing sphere)
+// Draw slow/arrow down icon (arrow pointing down for speed decrease)
 const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   // Outer glow
-  const glowGrad = ctx.createRadialGradient(x, y, size * 0.2, x, y, size * 0.5);
-  glowGrad.addColorStop(0, 'hsla(195, 100%, 70%, 0.8)');
-  glowGrad.addColorStop(0.5, 'hsla(195, 100%, 60%, 0.4)');
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.5);
+  glowGrad.addColorStop(0, 'hsla(195, 100%, 70%, 0.5)');
   glowGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
   ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
   ctx.fill();
   
-  // Main cyan ball
-  const ballGrad = ctx.createRadialGradient(x - size * 0.1, y - size * 0.1, 0, x, y, size * 0.35);
-  ballGrad.addColorStop(0, 'hsl(195, 100%, 90%)');
-  ballGrad.addColorStop(0.3, 'hsl(195, 100%, 65%)');
-  ballGrad.addColorStop(0.7, 'hsl(200, 100%, 50%)');
-  ballGrad.addColorStop(1, 'hsl(210, 100%, 40%)');
+  // Arrow down shape
+  const arrowGrad = ctx.createLinearGradient(x, y - size * 0.35, x, y + size * 0.35);
+  arrowGrad.addColorStop(0, 'hsl(195, 100%, 75%)');
+  arrowGrad.addColorStop(0.5, 'hsl(195, 100%, 55%)');
+  arrowGrad.addColorStop(1, 'hsl(210, 100%, 45%)');
   
-  ctx.fillStyle = ballGrad;
+  ctx.fillStyle = arrowGrad;
   ctx.beginPath();
-  ctx.arc(x, y, size * 0.35, 0, Math.PI * 2);
+  // Arrow stem
+  ctx.moveTo(x - size * 0.12, y - size * 0.35);
+  ctx.lineTo(x + size * 0.12, y - size * 0.35);
+  ctx.lineTo(x + size * 0.12, y + size * 0.05);
+  // Arrow head
+  ctx.lineTo(x + size * 0.35, y + size * 0.05);
+  ctx.lineTo(x, y + size * 0.4);
+  ctx.lineTo(x - size * 0.35, y + size * 0.05);
+  ctx.lineTo(x - size * 0.12, y + size * 0.05);
+  ctx.closePath();
   ctx.fill();
   
-  // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.beginPath();
-  ctx.arc(x - size * 0.12, y - size * 0.12, size * 0.1, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Snowflake overlay
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  // Highlight edge
+  ctx.strokeStyle = 'hsl(195, 100%, 85%)';
   ctx.lineWidth = 1.5;
-  for (let i = 0; i < 6; i++) {
-    const angle = (i / 6) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + Math.cos(angle) * size * 0.2, y + Math.sin(angle) * size * 0.2);
-    ctx.stroke();
-  }
+  ctx.stroke();
+  
+  // Inner highlight
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.08, y - size * 0.3);
+  ctx.lineTo(x + size * 0.02, y - size * 0.3);
+  ctx.lineTo(x + size * 0.02, y - size * 0.1);
+  ctx.lineTo(x - size * 0.08, y - size * 0.1);
+  ctx.closePath();
+  ctx.fill();
 };
 
 // Draw big paddle icon (red/cyan paddle)
@@ -384,37 +389,49 @@ const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
 };
 
-// Draw speedup icon (lightning bolt)
+// Draw speedup icon (arrow pointing up for speed increase)
 const drawSpeedupIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  // Orange/yellow lightning bolt
-  const boltGrad = ctx.createLinearGradient(x, y - size * 0.4, x, y + size * 0.4);
-  boltGrad.addColorStop(0, 'hsl(50, 100%, 65%)');
-  boltGrad.addColorStop(0.5, 'hsl(35, 100%, 55%)');
-  boltGrad.addColorStop(1, 'hsl(25, 100%, 45%)');
-  
-  ctx.fillStyle = boltGrad;
+  // Outer glow
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.5);
+  glowGrad.addColorStop(0, 'hsla(35, 100%, 60%, 0.5)');
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
   ctx.beginPath();
-  ctx.moveTo(x + size * 0.1, y - size * 0.4);
-  ctx.lineTo(x + size * 0.25, y - size * 0.4);
-  ctx.lineTo(x + size * 0.05, y - size * 0.05);
-  ctx.lineTo(x + size * 0.2, y - size * 0.05);
-  ctx.lineTo(x - size * 0.15, y + size * 0.4);
-  ctx.lineTo(x - size * 0.05, y + size * 0.05);
-  ctx.lineTo(x - size * 0.2, y + size * 0.05);
+  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Arrow up shape (orange/red for danger - speed increase is negative)
+  const arrowGrad = ctx.createLinearGradient(x, y + size * 0.35, x, y - size * 0.35);
+  arrowGrad.addColorStop(0, 'hsl(25, 100%, 65%)');
+  arrowGrad.addColorStop(0.5, 'hsl(15, 100%, 50%)');
+  arrowGrad.addColorStop(1, 'hsl(5, 100%, 45%)');
+  
+  ctx.fillStyle = arrowGrad;
+  ctx.beginPath();
+  // Arrow head
+  ctx.moveTo(x, y - size * 0.4);
+  ctx.lineTo(x + size * 0.35, y - size * 0.05);
+  ctx.lineTo(x + size * 0.12, y - size * 0.05);
+  // Arrow stem
+  ctx.lineTo(x + size * 0.12, y + size * 0.35);
+  ctx.lineTo(x - size * 0.12, y + size * 0.35);
+  ctx.lineTo(x - size * 0.12, y - size * 0.05);
+  ctx.lineTo(x - size * 0.35, y - size * 0.05);
   ctx.closePath();
   ctx.fill();
   
   // Highlight edge
-  ctx.strokeStyle = 'hsl(55, 100%, 80%)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'hsl(35, 100%, 75%)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   
   // Inner highlight
   ctx.fillStyle = 'rgba(255, 255, 200, 0.5)';
   ctx.beginPath();
-  ctx.moveTo(x + size * 0.05, y - size * 0.3);
-  ctx.lineTo(x + size * 0.12, y - size * 0.3);
-  ctx.lineTo(x + size * 0.02, y - size * 0.1);
+  ctx.moveTo(x - size * 0.02, y - size * 0.3);
+  ctx.lineTo(x + size * 0.15, y - size * 0.1);
+  ctx.lineTo(x + size * 0.08, y - size * 0.1);
+  ctx.lineTo(x - size * 0.02, y - size * 0.2);
   ctx.closePath();
   ctx.fill();
 };
