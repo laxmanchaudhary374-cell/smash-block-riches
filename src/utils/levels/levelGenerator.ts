@@ -8,7 +8,7 @@ import {
 } from './levelPatterns';
 
 // Pattern types for variety
-type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'boss';
+type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
@@ -53,6 +53,8 @@ const getLevelName = (level: number, pattern: PatternType): string => {
     star: ['STAR', 'NOVA', 'STELLAR', 'ASTRAL'],
     zigzag: ['ZIGZAG', 'SNAKE', 'BOLT', 'THUNDER'],
     random: ['CHAOS', 'STORM', 'MAYHEM', 'FRENZY'],
+    arrow: ['ARROW', 'DART', 'LANCE', 'SPEAR'],
+    circle: ['CIRCLE', 'RING', 'ORBIT', 'HALO'],
     boss: ['BOSS', 'GUARDIAN', 'TITAN', 'OVERLORD'],
   };
   
@@ -324,12 +326,166 @@ const generateBossPattern = (level: number, params: ReturnType<typeof getDifficu
   return bricks;
 };
 
+// Generate heart pattern
+const generateHeartPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Heart shape grid (7x7)
+  const heartShape = [
+    [0, 1, 1, 0, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0],
+  ];
+  
+  for (let row = 0; row < heartShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < heartShape[row].length; col++) {
+      if (heartShape[row][col] === 1) {
+        const color = row < 3 ? 'red' : COLORS[(level + row) % COLORS.length];
+        rowBricks.push(getBrickDef(color as BrickColor, params));
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate star pattern
+const generateStarPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Star shape grid (7x7)
+  const starShape = [
+    [0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 0, 1, 1, 0],
+    [1, 1, 0, 0, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+  ];
+  
+  for (let row = 0; row < starShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < starShape[row].length; col++) {
+      if (starShape[row][col] === 1) {
+        const color = 'gold';
+        rowBricks.push(getBrickDef(color as BrickColor, params));
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate arrow pattern
+const generateArrowPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Arrow pointing down shape
+  const arrowShape = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0],
+  ];
+  
+  for (let row = 0; row < arrowShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < arrowShape[row].length; col++) {
+      if (arrowShape[row][col] === 1) {
+        const color = COLORS[(level + col) % COLORS.length];
+        rowBricks.push(getBrickDef(color, params));
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate circle/ring pattern
+const generateCirclePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Circle shape (outer ring)
+  const circleShape = [
+    [0, 0, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 0],
+    [1, 1, 0, 0, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 0, 1, 1],
+    [0, 1, 1, 0, 1, 1, 0],
+    [0, 0, 1, 1, 1, 0, 0],
+  ];
+  
+  for (let row = 0; row < circleShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < circleShape[row].length; col++) {
+      if (circleShape[row][col] === 1) {
+        const color = COLORS[(level + row + col) % COLORS.length];
+        rowBricks.push(getBrickDef(color, params));
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate spiral pattern
+const generateSpiralPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Spiral shape
+  const spiralShape = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+  ];
+  
+  for (let row = 0; row < spiralShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < spiralShape[row].length; col++) {
+      if (spiralShape[row][col] === 1) {
+        const color = COLORS[(level + row) % COLORS.length];
+        rowBricks.push(getBrickDef(color, params));
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
 // Get pattern type for level
 const getPatternType = (level: number): PatternType => {
   // Boss levels every 25 levels
   if (level % 25 === 0) return 'boss';
   
-  const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'random'];
+  const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star', 'arrow', 'circle', 'spiral', 'random'];
   return patterns[(level + Math.floor(level / 10)) % patterns.length];
 };
 
@@ -351,6 +507,11 @@ export const generateLevel = (level: number): LevelConfig => {
     case 'wave': bricks = generateWavePattern(level, params); break;
     case 'cross': bricks = generateCrossPattern(level, params); break;
     case 'zigzag': bricks = generateZigzagPattern(level, params); break;
+    case 'heart': bricks = generateHeartPattern(level, params); break;
+    case 'star': bricks = generateStarPattern(level, params); break;
+    case 'arrow': bricks = generateArrowPattern(level, params); break;
+    case 'circle': bricks = generateCirclePattern(level, params); break;
+    case 'spiral': bricks = generateSpiralPattern(level, params); break;
     case 'random': bricks = generateRandomPattern(level, params); break;
     case 'boss': bricks = generateBossPattern(level, params); break;
     default: bricks = generateRowPattern(level, params);

@@ -56,6 +56,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     hasShield: false,
   });
   
+  // Track shield expiry time
+  const shieldTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   const [balls, setBalls] = useState<Ball[]>([]);
   const [bricks, setBricks] = useState<Brick[]>([]);
   const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
@@ -127,6 +130,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       magnetBallRef.current = null;
     }
   }, [gameState.status]);
+
+  // Track previous brick count for level completion check
+  const prevBrickCountRef = useRef<number>(0);
+  
+  // Check for level completion (catches laser/explosion destroyed bricks)
+  useEffect(() => {
+    if (gameState.status !== 'playing') return;
+    
+    const remainingBricks = bricks.filter(b => !b.destroyed && b.type !== 'indestructible');
+    const hadBricks = prevBrickCountRef.current > 0;
+    
+    // Only trigger level complete if we had bricks before and now have none
+    if (remainingBricks.length === 0 && hadBricks) {
+      setTimeout(() => onLevelComplete(), 300);
+    }
+    
+    prevBrickCountRef.current = remainingBricks.length;
+  }, [bricks, gameState.status, onLevelComplete]);
 
   // Create particles
   const createParticles = useCallback((x: number, y: number, color: string, count: number = 8) => {
@@ -461,23 +482,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     });
 
     // Check laser-brick collisions
+    let laserDestroyedBrick = false;
     setLasers(prevLasers => {
       return prevLasers.filter(laser => {
         for (const brick of bricks) {
           if (!brick.destroyed && checkLaserBrickCollision(laser, brick)) {
             // Hit brick
-            setBricks(prev => prev.map(b => {
-              if (b.id === brick.id && b.type !== 'indestructible') {
-                const newHits = b.hits - 1;
-                if (newHits <= 0) {
-                  const score = destroyBrick(b);
-                  if (score) onScoreChange(gameState.score + score);
-                  return { ...b, hits: 0, destroyed: true };
+            setBricks(prev => {
+              const updated = prev.map(b => {
+                if (b.id === brick.id && b.type !== 'indestructible') {
+                  const newHits = b.hits - 1;
+                  if (newHits <= 0) {
+                    const score = destroyBrick(b);
+                    if (score) onScoreChange(gameState.score + score);
+                    laserDestroyedBrick = true;
+                    return { ...b, hits: 0, destroyed: true };
+                  }
+                  return { ...b, hits: newHits };
                 }
-                return { ...b, hits: newHits };
-              }
-              return b;
-            }));
+                return b;
+              });
+              return updated;
+            });
             createParticles(laser.x, laser.y, 'hsl(0, 100%, 50%)', 5);
             return false;
           }
@@ -554,11 +580,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         onScoreChange(gameState.score + Math.round(scoreToAdd));
       }
 
-      // Check if level complete (ignore indestructible bricks)
-      const remainingBricks = updatedBricks.filter(b => !b.destroyed && b.type !== 'indestructible');
-      if (remainingBricks.length === 0 && prevBricks.some(b => !b.destroyed && b.type !== 'indestructible')) {
-        setTimeout(() => onLevelComplete(), 300);
-      }
+      // Level completion check is now handled by useEffect watching bricks state
 
       return updatedBricks;
     });
@@ -615,13 +637,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           switch (powerUp.type) {
             case 'widen':
               setPaddle(prev => ({ ...prev, width: Math.min(150, prev.width + 30) }));
+              setTimeout(() => setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH })), 10000);
               break;
             case 'shrink':
               setPaddle(prev => ({ ...prev, width: Math.max(40, prev.width - 20) }));
+              setTimeout(() => setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH })), 10000);
               break;
             case 'multiball':
+              // Create 2 balls (doubling existing)
               setBalls(prev => {
-                if (prev.length < 5) {
+                if (prev.length < 6) {
                   const newBalls = prev.flatMap(ball => [
                     ball,
                     {
@@ -637,6 +662,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 }
                 return prev;
               });
+              break;
+            case 'sevenball':
+              // Create 7 balls total
+              setBalls(prev => {
+                const baseBall = prev[0] || {
+                  id: generateId(),
+                  position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 60 },
+                  velocity: { dx: 0, dy: -ballSpeed },
+                  radius: BALL_RADIUS,
+                };
+                const newBalls: Ball[] = [baseBall];
+                for (let i = 0; i < 6; i++) {
+                  const angle = (i / 6) * Math.PI * 2;
+                  newBalls.push({
+                    id: generateId(),
+                    position: { ...baseBall.position },
+                    velocity: {
+                      dx: Math.sin(angle) * ballSpeed * 0.5,
+                      dy: -Math.abs(Math.cos(angle) * ballSpeed),
+                    },
+                    radius: BALL_RADIUS,
+                  });
+                }
+                return newBalls;
+              });
+              break;
+            case 'bigball':
+              // Make all balls bigger for 10 seconds
+              setBalls(prev => prev.map(ball => ({
+                ...ball,
+                radius: BALL_RADIUS * 1.8,
+              })));
+              setTimeout(() => {
+                setBalls(prev => prev.map(ball => ({
+                  ...ball,
+                  radius: BALL_RADIUS,
+                })));
+              }, 10000);
               break;
             case 'slow':
               setBalls(prev => prev.map(ball => ({
@@ -662,18 +725,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               break;
             case 'fireball':
               setIsFireball(true);
-              setTimeout(() => setIsFireball(false), 5000);
+              setTimeout(() => setIsFireball(false), 10000);
               break;
             case 'laser':
               setPaddle(prev => ({ ...prev, hasLaser: true }));
-              setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 8000);
+              setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 10000);
               break;
             case 'magnet':
               setPaddle(prev => ({ ...prev, hasMagnet: true }));
               setTimeout(() => setPaddle(prev => ({ ...prev, hasMagnet: false })), 10000);
               break;
             case 'shield':
+              // Clear existing shield timer
+              if (shieldTimerRef.current) {
+                clearTimeout(shieldTimerRef.current);
+              }
               setPaddle(prev => ({ ...prev, hasShield: true }));
+              // Shield lasts 10 seconds
+              shieldTimerRef.current = setTimeout(() => {
+                setPaddle(prev => ({ ...prev, hasShield: false }));
+              }, 10000);
               break;
           }
           

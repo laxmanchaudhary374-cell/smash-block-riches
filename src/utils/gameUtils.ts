@@ -104,8 +104,8 @@ export const shouldDropPowerUp = (): boolean => {
 };
 
 export const getRandomPowerUpType = (): PowerUpType => {
-  const types: PowerUpType[] = ['widen', 'multiball', 'slow', 'extralife', 'fireball', 'laser', 'magnet', 'shield', 'shrink', 'speedup'];
-  const weights = [0.18, 0.15, 0.12, 0.08, 0.12, 0.10, 0.08, 0.07, 0.05, 0.05];
+  const types: PowerUpType[] = ['widen', 'multiball', 'sevenball', 'bigball', 'slow', 'extralife', 'fireball', 'laser', 'magnet', 'shield', 'shrink', 'speedup'];
+  const weights = [0.14, 0.12, 0.06, 0.08, 0.10, 0.08, 0.10, 0.08, 0.07, 0.07, 0.05, 0.05];
   
   const random = Math.random();
   let cumulative = 0;
@@ -137,6 +137,8 @@ export const getPowerUpColor = (type: PowerUpType): string => {
   const colors: Record<PowerUpType, string> = {
     widen: 'hsl(180, 100%, 50%)',
     multiball: 'hsl(320, 100%, 60%)',
+    sevenball: 'hsl(280, 100%, 60%)',
+    bigball: 'hsl(40, 100%, 55%)',
     slow: 'hsl(50, 100%, 55%)',
     extralife: 'hsl(150, 100%, 45%)',
     fireball: 'hsl(25, 100%, 55%)',
@@ -152,15 +154,17 @@ export const getPowerUpColor = (type: PowerUpType): string => {
 export const getPowerUpLabel = (type: PowerUpType): string => {
   const labels: Record<PowerUpType, string> = {
     widen: 'W',
-    multiball: 'M',
-    slow: 'S',
+    multiball: '2',
+    sevenball: '7',
+    bigball: 'B',
+    slow: '↓',
     extralife: '+1',
     fireball: 'F',
     laser: 'L',
     magnet: '◎',
     shield: '⬡',
     shrink: '←→',
-    speedup: '⚡',
+    speedup: '↑',
   };
   return labels[type];
 };
