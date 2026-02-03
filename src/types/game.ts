@@ -67,13 +67,15 @@ export interface PowerUp {
 
 export type PowerUpType = 
   | 'widen' 
-  | 'multiball' 
+  | 'multiball'   // Splits into 2 balls
+  | 'sevenball'   // Creates 7 balls
+  | 'bigball'     // Makes ball bigger
   | 'slow' 
   | 'extralife' 
   | 'fireball'
   | 'laser'       // Shoot lasers from paddle
   | 'magnet'      // Ball sticks to paddle
-  | 'shield'      // Safety net at bottom
+  | 'shield'      // Safety net at bottom for 10 seconds
   | 'shrink'      // Paddle shrinks (negative)
   | 'speedup';    // Ball speeds up (negative)
 

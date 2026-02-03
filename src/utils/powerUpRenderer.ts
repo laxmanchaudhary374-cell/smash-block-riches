@@ -54,46 +54,125 @@ const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, s
   ctx.fill();
 };
 
-// Draw multi-ball icon (main ball with smaller balls and motion trail)
+// Draw multi-ball icon (2 balls side by side)
 const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  // Motion trail
-  const trailGrad = ctx.createRadialGradient(x + size * 0.3, y, size * 0.1, x + size * 0.6, y, size * 0.5);
-  trailGrad.addColorStop(0, 'hsl(15, 100%, 50%)');
-  trailGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = trailGrad;
+  const ballRadius = size * 0.25;
+  const spacing = size * 0.3;
+  
+  // Left ball
+  const leftGrad = ctx.createRadialGradient(x - spacing - ballRadius * 0.2, y - ballRadius * 0.2, 0, x - spacing, y, ballRadius);
+  leftGrad.addColorStop(0, 'hsl(40, 100%, 85%)');
+  leftGrad.addColorStop(0.4, 'hsl(25, 100%, 60%)');
+  leftGrad.addColorStop(1, 'hsl(10, 100%, 40%)');
+  ctx.fillStyle = leftGrad;
   ctx.beginPath();
-  ctx.ellipse(x + size * 0.3, y, size * 0.5, size * 0.3, 0, 0, Math.PI * 2);
+  ctx.arc(x - spacing, y, ballRadius, 0, Math.PI * 2);
   ctx.fill();
   
-  // Main orange ball
-  const mainGrad = ctx.createRadialGradient(x - size * 0.1, y - size * 0.1, 0, x, y, size * 0.35);
-  mainGrad.addColorStop(0, 'hsl(40, 100%, 70%)');
-  mainGrad.addColorStop(0.5, 'hsl(25, 100%, 55%)');
-  mainGrad.addColorStop(1, 'hsl(10, 100%, 40%)');
-  
-  ctx.fillStyle = mainGrad;
+  // Right ball
+  const rightGrad = ctx.createRadialGradient(x + spacing - ballRadius * 0.2, y - ballRadius * 0.2, 0, x + spacing, y, ballRadius);
+  rightGrad.addColorStop(0, 'hsl(40, 100%, 85%)');
+  rightGrad.addColorStop(0.4, 'hsl(25, 100%, 60%)');
+  rightGrad.addColorStop(1, 'hsl(10, 100%, 40%)');
+  ctx.fillStyle = rightGrad;
   ctx.beginPath();
-  ctx.arc(x, y, size * 0.35, 0, Math.PI * 2);
+  ctx.arc(x + spacing, y, ballRadius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Highlights
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.beginPath();
+  ctx.arc(x - spacing - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + spacing - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+};
+
+// Draw 7-ball icon (7 small balls arranged in pattern)
+const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const ballRadius = size * 0.12;
+  
+  // Positions for 7 balls in a hexagonal pattern
+  const positions = [
+    { dx: 0, dy: 0 },           // Center
+    { dx: -0.25, dy: -0.2 },    // Top left
+    { dx: 0.25, dy: -0.2 },     // Top right
+    { dx: -0.35, dy: 0.1 },     // Mid left
+    { dx: 0.35, dy: 0.1 },      // Mid right
+    { dx: -0.2, dy: 0.3 },      // Bottom left
+    { dx: 0.2, dy: 0.3 },       // Bottom right
+  ];
+  
+  positions.forEach((pos, i) => {
+    const bx = x + pos.dx * size;
+    const by = y + pos.dy * size;
+    
+    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, by - ballRadius * 0.3, 0, bx, by, ballRadius);
+    ballGrad.addColorStop(0, 'hsl(280, 100%, 85%)');
+    ballGrad.addColorStop(0.5, 'hsl(280, 100%, 60%)');
+    ballGrad.addColorStop(1, 'hsl(260, 100%, 40%)');
+    ctx.fillStyle = ballGrad;
+    ctx.beginPath();
+    ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.arc(bx - ballRadius * 0.3, by - ballRadius * 0.3, ballRadius * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+};
+
+// Draw big ball icon (large ball with glow)
+const drawBigballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const ballRadius = size * 0.4;
+  
+  // Outer glow
+  const glowGrad = ctx.createRadialGradient(x, y, ballRadius * 0.5, x, y, ballRadius * 1.3);
+  glowGrad.addColorStop(0, 'hsla(45, 100%, 60%, 0.4)');
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, ballRadius * 1.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Main ball
+  const ballGrad = ctx.createRadialGradient(x - ballRadius * 0.3, y - ballRadius * 0.3, 0, x, y, ballRadius);
+  ballGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
+  ballGrad.addColorStop(0.3, 'hsl(45, 100%, 70%)');
+  ballGrad.addColorStop(0.7, 'hsl(40, 100%, 55%)');
+  ballGrad.addColorStop(1, 'hsl(35, 100%, 40%)');
+  ctx.fillStyle = ballGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
   ctx.fill();
   
   // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
   ctx.beginPath();
-  ctx.arc(x - size * 0.1, y - size * 0.1, size * 0.08, 0, Math.PI * 2);
+  ctx.arc(x - ballRadius * 0.25, y - ballRadius * 0.25, ballRadius * 0.2, 0, Math.PI * 2);
   ctx.fill();
   
-  // Small trailing balls
-  const smallBallGrad = ctx.createRadialGradient(x + size * 0.35, y + size * 0.15, 0, x + size * 0.35, y + size * 0.15, size * 0.12);
-  smallBallGrad.addColorStop(0, 'hsl(30, 100%, 65%)');
-  smallBallGrad.addColorStop(1, 'hsl(15, 100%, 45%)');
-  ctx.fillStyle = smallBallGrad;
-  ctx.beginPath();
-  ctx.arc(x + size * 0.35, y + size * 0.15, size * 0.12, 0, Math.PI * 2);
-  ctx.fill();
+  // Size arrows pointing outward
+  ctx.strokeStyle = 'hsl(35, 100%, 30%)';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  const arrowDist = ballRadius * 0.6;
   
-  ctx.beginPath();
-  ctx.arc(x + size * 0.45, y - size * 0.1, size * 0.08, 0, Math.PI * 2);
-  ctx.fill();
+  // Draw outward arrows
+  [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach(angle => {
+    const startX = x + Math.cos(angle) * arrowDist * 0.5;
+    const startY = y + Math.sin(angle) * arrowDist * 0.5;
+    const endX = x + Math.cos(angle) * arrowDist;
+    const endY = y + Math.sin(angle) * arrowDist;
+    
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+  });
 };
 
 // Draw slow/arrow down icon (arrow pointing down for speed decrease)
@@ -107,7 +186,7 @@ const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size:
   ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
   ctx.fill();
   
-  // Arrow down shape
+  // Arrow down shape (cyan/blue for slow - speed decrease is positive)
   const arrowGrad = ctx.createLinearGradient(x, y - size * 0.35, x, y + size * 0.35);
   arrowGrad.addColorStop(0, 'hsl(195, 100%, 75%)');
   arrowGrad.addColorStop(0.5, 'hsl(195, 100%, 55%)');
@@ -119,7 +198,7 @@ const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size:
   ctx.moveTo(x - size * 0.12, y - size * 0.35);
   ctx.lineTo(x + size * 0.12, y - size * 0.35);
   ctx.lineTo(x + size * 0.12, y + size * 0.05);
-  // Arrow head
+  // Arrow head pointing DOWN
   ctx.lineTo(x + size * 0.35, y + size * 0.05);
   ctx.lineTo(x, y + size * 0.4);
   ctx.lineTo(x - size * 0.35, y + size * 0.05);
@@ -350,42 +429,58 @@ const drawFreezeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
 };
 
-// Draw shield icon (bubble)
+// Draw shield icon (horizontal line barrier at bottom)
 const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const shieldRadius = size * 0.38;
-  
   // Outer glow
-  const glowGrad = ctx.createRadialGradient(x, y, shieldRadius * 0.5, x, y, shieldRadius * 1.2);
-  glowGrad.addColorStop(0, 'hsla(195, 100%, 70%, 0.3)');
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.5);
+  glowGrad.addColorStop(0, 'hsla(200, 100%, 70%, 0.4)');
   glowGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
-  ctx.arc(x, y, shieldRadius * 1.2, 0, Math.PI * 2);
+  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
   ctx.fill();
   
-  // Main bubble
-  const bubbleGrad = ctx.createRadialGradient(x - shieldRadius * 0.3, y - shieldRadius * 0.3, 0, x, y, shieldRadius);
-  bubbleGrad.addColorStop(0, 'hsla(195, 100%, 90%, 0.9)');
-  bubbleGrad.addColorStop(0.3, 'hsla(195, 100%, 70%, 0.7)');
-  bubbleGrad.addColorStop(0.7, 'hsla(200, 100%, 55%, 0.5)');
-  bubbleGrad.addColorStop(1, 'hsla(210, 100%, 45%, 0.3)');
+  // Shield barrier line
+  const lineWidth = size * 0.8;
+  const lineHeight = size * 0.15;
   
-  ctx.fillStyle = bubbleGrad;
+  // Main barrier line
+  const barrierGrad = ctx.createLinearGradient(x - lineWidth/2, y, x + lineWidth/2, y);
+  barrierGrad.addColorStop(0, 'hsl(200, 100%, 70%)');
+  barrierGrad.addColorStop(0.5, 'hsl(195, 100%, 80%)');
+  barrierGrad.addColorStop(1, 'hsl(200, 100%, 70%)');
+  
+  ctx.fillStyle = barrierGrad;
+  ctx.shadowColor = 'hsl(200, 100%, 60%)';
+  ctx.shadowBlur = 8;
   ctx.beginPath();
-  ctx.arc(x, y, shieldRadius, 0, Math.PI * 2);
+  ctx.roundRect(x - lineWidth/2, y + size * 0.15, lineWidth, lineHeight, lineHeight/2);
   ctx.fill();
+  ctx.shadowBlur = 0;
   
-  // Rim
-  ctx.strokeStyle = 'hsla(195, 100%, 80%, 0.8)';
+  // Energy pulses on the line
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  for (let i = 0; i < 3; i++) {
+    const pulseX = x - lineWidth * 0.3 + i * lineWidth * 0.3;
+    ctx.beginPath();
+    ctx.arc(pulseX, y + size * 0.15 + lineHeight/2, lineHeight * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Small shield icon above
+  ctx.strokeStyle = 'hsl(200, 100%, 75%)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(x, y, shieldRadius, 0, Math.PI * 2);
+  ctx.moveTo(x, y - size * 0.35);
+  ctx.lineTo(x - size * 0.2, y - size * 0.2);
+  ctx.lineTo(x - size * 0.2, y);
+  ctx.quadraticCurveTo(x, y + size * 0.1, x, y + size * 0.1);
+  ctx.quadraticCurveTo(x, y + size * 0.1, x + size * 0.2, y);
+  ctx.lineTo(x + size * 0.2, y - size * 0.2);
+  ctx.closePath();
   ctx.stroke();
   
-  // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.beginPath();
-  ctx.arc(x - shieldRadius * 0.35, y - shieldRadius * 0.35, shieldRadius * 0.25, 0, Math.PI * 2);
+  ctx.fillStyle = 'hsla(200, 100%, 60%, 0.5)';
   ctx.fill();
 };
 
@@ -550,8 +645,14 @@ const drawPowerUpIcon = (
     case 'multiball':
       drawMultiballIcon(ctx, x, y, size);
       break;
+    case 'sevenball':
+      drawSevenballIcon(ctx, x, y, size);
+      break;
+    case 'bigball':
+      drawBigballIcon(ctx, x, y, size);
+      break;
     case 'slow':
-      drawFreezeIcon(ctx, x, y, size);
+      drawSlowIcon(ctx, x, y, size);
       break;
     case 'widen':
       drawWidenIcon(ctx, x, y, size);
@@ -581,6 +682,8 @@ const getPowerUpColors = (type: PowerUpType): { bgColor: string; glowColor: stri
   const configs: Record<PowerUpType, { bgColor: string; glowColor: string; isNegative: boolean }> = {
     fireball: { bgColor: 'hsl(25, 90%, 45%)', glowColor: 'hsla(30, 100%, 55%, 0.7)', isNegative: false },
     multiball: { bgColor: 'hsl(20, 85%, 45%)', glowColor: 'hsla(25, 100%, 50%, 0.7)', isNegative: false },
+    sevenball: { bgColor: 'hsl(280, 70%, 50%)', glowColor: 'hsla(280, 100%, 60%, 0.7)', isNegative: false },
+    bigball: { bgColor: 'hsl(40, 85%, 50%)', glowColor: 'hsla(45, 100%, 60%, 0.7)', isNegative: false },
     slow: { bgColor: 'hsl(195, 85%, 45%)', glowColor: 'hsla(195, 100%, 60%, 0.7)', isNegative: false },
     widen: { bgColor: 'hsl(180, 70%, 40%)', glowColor: 'hsla(180, 100%, 55%, 0.7)', isNegative: false },
     shrink: { bgColor: 'hsl(0, 40%, 30%)', glowColor: 'hsla(0, 60%, 40%, 0.5)', isNegative: true },
