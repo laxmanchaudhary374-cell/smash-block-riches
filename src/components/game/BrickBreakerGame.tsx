@@ -3,12 +3,16 @@ import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
 import GameUI from './GameUI';
-import MenuScreen from './MenuScreen';
+import SplashScreen from './SplashScreen';
+import MainMenuScreen from './MainMenuScreen';
 import GameOverScreen from './GameOverScreen';
 import LevelCompleteScreen from './LevelCompleteScreen';
 import AudioControls from './AudioControls';
 import { audioManager } from '@/utils/audioManager';
+import spaceBackground from '@/assets/space-background.jpg';
+
 const STORAGE_KEY = 'neon_breaker_highscore';
+const LEVEL_KEY = 'neon_breaker_unlocked_level';
 
 const getStoredHighScore = (): number => {
   try {
@@ -27,7 +31,28 @@ const setStoredHighScore = (score: number): void => {
   }
 };
 
+const getStoredUnlockedLevel = (): number => {
+  try {
+    const stored = localStorage.getItem(LEVEL_KEY);
+    return stored ? parseInt(stored, 10) : 1;
+  } catch {
+    return 1;
+  }
+};
+
+const setStoredUnlockedLevel = (level: number): void => {
+  try {
+    localStorage.setItem(LEVEL_KEY, level.toString());
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+type ScreenState = 'splash' | 'menu' | 'playing' | 'gameover' | 'levelcomplete' | 'won';
+
 const BrickBreakerGame: React.FC = () => {
+  const [screenState, setScreenState] = useState<ScreenState>('splash');
+  const [unlockedLevel, setUnlockedLevel] = useState(getStoredUnlockedLevel());
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
     score: 0,
@@ -41,32 +66,51 @@ const BrickBreakerGame: React.FC = () => {
 
   const [isNewHighScore, setIsNewHighScore] = useState(false);
 
-  // Update high score when game ends
+  // Update high score and unlocked level when game ends
   useEffect(() => {
-    if (gameState.status === 'gameover' || gameState.status === 'won') {
+    if (screenState === 'gameover' || screenState === 'won' || screenState === 'levelcomplete') {
       if (gameState.score > gameState.highScore) {
         setStoredHighScore(gameState.score);
         setGameState(prev => ({ ...prev, highScore: gameState.score }));
         setIsNewHighScore(true);
       }
+      
+      // Update unlocked level
+      if (screenState === 'levelcomplete' || screenState === 'won') {
+        const nextLevel = gameState.level + 1;
+        if (nextLevel > unlockedLevel) {
+          setUnlockedLevel(nextLevel);
+          setStoredUnlockedLevel(nextLevel);
+        }
+      }
     }
-  }, [gameState.status, gameState.score, gameState.highScore]);
+  }, [screenState, gameState.score, gameState.highScore, gameState.level, unlockedLevel]);
 
-  const handleStartGame = useCallback(() => {
+  const handlePlayFromSplash = useCallback(() => {
+    setScreenState('menu');
+  }, []);
+
+  const handleBackToSplash = useCallback(() => {
+    setScreenState('splash');
+  }, []);
+
+  const handleStartGame = useCallback((level: number = 1) => {
     setIsNewHighScore(false);
     setGameState({
       status: 'playing',
       score: 0,
       lives: 3,
-      level: 1,
+      level: level,
       highScore: getStoredHighScore(),
       coins: 0,
       combo: 0,
       maxCombo: 0,
     });
+    setScreenState('playing');
   }, []);
 
   const handleGameOver = useCallback(() => {
+    setScreenState('gameover');
     setGameState(prev => ({ ...prev, status: 'gameover' }));
   }, []);
 
@@ -74,8 +118,10 @@ const BrickBreakerGame: React.FC = () => {
     const totalLevels = getTotalLevels();
     
     if (gameState.level >= totalLevels) {
+      setScreenState('won');
       setGameState(prev => ({ ...prev, status: 'won' }));
     } else {
+      setScreenState('levelcomplete');
       setGameState(prev => ({ ...prev, status: 'levelcomplete' }));
     }
   }, [gameState.level]);
@@ -85,8 +131,9 @@ const BrickBreakerGame: React.FC = () => {
       ...prev,
       status: 'playing',
       level: prev.level + 1,
-      lives: 3, // Reset lives for each new level
+      lives: 3,
     }));
+    setScreenState('playing');
   }, []);
 
   const handleReplayLevel = useCallback(() => {
@@ -94,11 +141,12 @@ const BrickBreakerGame: React.FC = () => {
       ...prev,
       status: 'playing',
       lives: 3,
-      // Keep the same level to replay it
     }));
+    setScreenState('playing');
   }, []);
 
   const handleMainMenu = useCallback(() => {
+    setScreenState('menu');
     setGameState(prev => ({
       ...prev,
       status: 'menu',
@@ -110,14 +158,6 @@ const BrickBreakerGame: React.FC = () => {
 
   const handleScoreChange = useCallback((newScore: number) => {
     setGameState(prev => ({ ...prev, score: newScore }));
-  }, []);
-
-  const handleComboChange = useCallback((newCombo: number) => {
-    setGameState(prev => ({ 
-      ...prev, 
-      combo: newCombo,
-      maxCombo: Math.max(prev.maxCombo, newCombo),
-    }));
   }, []);
 
   const handleRestart = useCallback(() => {
@@ -132,43 +172,61 @@ const BrickBreakerGame: React.FC = () => {
       combo: 0,
       maxCombo: 0,
     }));
+    setScreenState('playing');
   }, []);
 
-  // Play sounds on game state changes
+  // Play sounds on screen state changes
   useEffect(() => {
-    if (gameState.status === 'levelcomplete' || gameState.status === 'won') {
+    if (screenState === 'levelcomplete' || screenState === 'won') {
       audioManager.playLevelComplete();
-    } else if (gameState.status === 'gameover') {
+    } else if (screenState === 'gameover') {
       audioManager.playGameOver();
     }
-  }, [gameState.status]);
+  }, [screenState]);
 
-  if (gameState.status === 'menu') {
+  // Show splash screen
+  if (screenState === 'splash') {
+    return <SplashScreen onPlay={handlePlayFromSplash} />;
+  }
+
+  // Show main menu
+  if (screenState === 'menu') {
     return (
-      <>
-        <AudioControls isPlaying={false} />
-        <MenuScreen
-          highScore={gameState.highScore}
-          onStartGame={handleStartGame}
-        />
-      </>
+      <MainMenuScreen
+        highScore={gameState.highScore}
+        unlockedLevel={unlockedLevel}
+        onStartGame={handleStartGame}
+        onBack={handleBackToSplash}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 select-none">
-      <AudioControls isPlaying={gameState.status === 'playing'} />
-      <div className="mb-4 text-center">
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center p-4 select-none"
+      style={{
+        backgroundImage: `url(${spaceBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Dark overlay for gameplay visibility */}
+      <div className="fixed inset-0 bg-black/40 pointer-events-none" />
+      
+      <AudioControls isPlaying={screenState === 'playing'} />
+      <div className="relative z-10 mb-4 text-center">
         <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">
           NEON BREAKER
         </h1>
       </div>
 
       {/* Game UI */}
-      <GameUI gameState={gameState} />
+      <div className="relative z-10">
+        <GameUI gameState={gameState} />
+      </div>
 
       {/* Game Area */}
-      <div className="relative">
+      <div className="relative z-10">
         <GameCanvas
           gameState={gameState}
           setGameState={setGameState}
@@ -178,7 +236,7 @@ const BrickBreakerGame: React.FC = () => {
         />
 
         {/* Overlays */}
-        {gameState.status === 'gameover' && (
+        {screenState === 'gameover' && (
           <GameOverScreen
             gameState={gameState}
             isNewHighScore={isNewHighScore}
@@ -187,7 +245,7 @@ const BrickBreakerGame: React.FC = () => {
           />
         )}
 
-        {(gameState.status === 'levelcomplete' || gameState.status === 'won') && (
+        {(screenState === 'levelcomplete' || screenState === 'won') && (
           <LevelCompleteScreen
             gameState={gameState}
             onNextLevel={handleNextLevel}
@@ -198,7 +256,7 @@ const BrickBreakerGame: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="mt-4 text-center text-muted-foreground font-game text-sm">
+      <div className="relative z-10 mt-4 text-center text-muted-foreground font-game text-sm">
         <p>Move paddle with mouse or touch</p>
       </div>
     </div>
