@@ -48,7 +48,8 @@ export type BrickColor = 'cyan' | 'magenta' | 'yellow' | 'green' | 'orange' | 'p
 export type BrickType = 
   | 'normal'        // Standard brick
   | 'explosive'     // Explodes and destroys nearby bricks
-  | 'indestructible'// Cannot be destroyed
+  | 'indestructible'// Cannot be destroyed (legacy, no longer generated)
+  | 'steel'         // Steel brick - breaks after 2 hits
   | 'moving'        // Moves left/right
   | 'chain'         // Triggers chain reaction
   | 'coin'          // Drops coins when destroyed

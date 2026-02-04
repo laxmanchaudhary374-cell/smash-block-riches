@@ -4,11 +4,11 @@
 import { LevelConfig, BrickColor } from '@/types/game';
 import { 
   createBrickRow, createPyramid, createCheckerboard, createVShape,
-  B, EX, IN, MV, CH, CO, RB, GH, BrickDef, COLORS
+  B, EX, IN, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
 
 // Pattern types for variety
-type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss';
+type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
@@ -19,7 +19,7 @@ const getDifficultyParams = (level: number) => {
     ballSpeed: 280 + level * 0.8 + tier * 20,
     maxHits: Math.min(1 + Math.floor(tier / 2), 4),
     explosiveChance: 0.05 + tier * 0.02,
-    indestructibleChance: Math.min(0.02 + tier * 0.015, 0.1),
+    steelChance: Math.min(0.02 + tier * 0.015, 0.1), // Renamed from indestructible - now 2-hit steel
     movingChance: 0.03 + tier * 0.02,
     chainChance: 0.04 + tier * 0.01,
     coinChance: 0.08 - tier * 0.005,
@@ -56,6 +56,10 @@ const getLevelName = (level: number, pattern: PatternType): string => {
     arrow: ['ARROW', 'DART', 'LANCE', 'SPEAR'],
     circle: ['CIRCLE', 'RING', 'ORBIT', 'HALO'],
     boss: ['BOSS', 'GUARDIAN', 'TITAN', 'OVERLORD'],
+    spaceship: ['STARSHIP', 'CRUISER', 'VESSEL', 'VOYAGER'],
+    robot: ['ROBOT', 'MECH', 'ANDROID', 'CYBORG'],
+    castle: ['PALACE', 'KINGDOM', 'THRONE', 'TOWER'],
+    bars: ['BARS', 'STRATUM', 'LAYER', 'TIER'],
   };
   
   const names = patternNames[pattern];
@@ -72,8 +76,9 @@ const getBrickDef = (color: BrickColor, params: ReturnType<typeof getDifficultyP
   const rand = Math.random();
   let cumulative = 0;
   
-  cumulative += params.indestructibleChance;
-  if (rand < cumulative) return IN();
+  // Steel bricks (2-hit) instead of indestructible
+  cumulative += params.steelChance;
+  if (rand < cumulative) return ST();
   
   cumulative += params.explosiveChance;
   if (rand < cumulative) return EX(color);
@@ -480,12 +485,139 @@ const generateSpiralPattern = (level: number, params: ReturnType<typeof getDiffi
   return bricks;
 };
 
+// Generate spaceship pattern (like reference images)
+const generateSpaceshipPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Spaceship/craft shape
+  const spaceshipShape = [
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [1, 1, 2, 2, 2, 2, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0, 0, 1, 0],
+  ];
+  
+  for (let row = 0; row < spaceshipShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < spaceshipShape[row].length; col++) {
+      const cell = spaceshipShape[row][col];
+      if (cell === 1) {
+        const color = COLORS[(level + col) % COLORS.length];
+        rowBricks.push(getBrickDef(color, params));
+      } else if (cell === 2) {
+        rowBricks.push(ST()); // Steel brick for cockpit
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate robot pattern
+const generateRobotPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Robot shape
+  const robotShape = [
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 2, 1, 1, 2, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 0, 1, 0, 0, 1, 0, 1],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+  ];
+  
+  for (let row = 0; row < robotShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < robotShape[row].length; col++) {
+      const cell = robotShape[row][col];
+      if (cell === 1) {
+        const color = row < 3 ? 'cyan' : (row < 5 ? 'magenta' : 'purple');
+        rowBricks.push(getBrickDef(color as BrickColor, params));
+      } else if (cell === 2) {
+        rowBricks.push(EX('red')); // Explosive eyes
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate castle/towers pattern (like reference horizontal bars with steel)
+const generateCastlePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  // Castle with towers and horizontal bars
+  const castleShape = [
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [2, 2, 2, 2, 2, 2, 2, 2],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [2, 2, 2, 2, 2, 2, 2, 2],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+  ];
+  
+  for (let row = 0; row < castleShape.length; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    for (let col = 0; col < castleShape[row].length; col++) {
+      const cell = castleShape[row][col];
+      if (cell === 1) {
+        const color = COLORS[(level + row) % COLORS.length];
+        rowBricks.push(getBrickDef(color, params));
+      } else if (cell === 2) {
+        rowBricks.push(ST()); // Steel horizontal bars
+      } else {
+        rowBricks.push(null);
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
+// Generate bars pattern (horizontal bars with steel separators)
+const generateBarsPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
+  const bricks: LevelConfig['bricks'] = [];
+  
+  for (let row = 0; row < 9; row++) {
+    const rowBricks: (BrickDef | BrickColor | null)[] = [];
+    const isSteel = row % 3 === 0;
+    
+    for (let col = 0; col < 8; col++) {
+      if (isSteel) {
+        rowBricks.push(ST()); // Steel bar separator
+      } else {
+        const color = COLORS[(level + row + col) % COLORS.length];
+        rowBricks.push(getBrickDef(color, params));
+      }
+    }
+    bricks.push(...createBrickRow(row, rowBricks));
+  }
+  
+  return bricks;
+};
+
 // Get pattern type for level
 const getPatternType = (level: number): PatternType => {
   // Boss levels every 25 levels
   if (level % 25 === 0) return 'boss';
   
-  const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star', 'arrow', 'circle', 'spiral', 'random'];
+  const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star', 'arrow', 'circle', 'spiral', 'random', 'spaceship', 'robot', 'castle', 'bars'];
   return patterns[(level + Math.floor(level / 10)) % patterns.length];
 };
 
@@ -514,6 +646,10 @@ export const generateLevel = (level: number): LevelConfig => {
     case 'spiral': bricks = generateSpiralPattern(level, params); break;
     case 'random': bricks = generateRandomPattern(level, params); break;
     case 'boss': bricks = generateBossPattern(level, params); break;
+    case 'spaceship': bricks = generateSpaceshipPattern(level, params); break;
+    case 'robot': bricks = generateRobotPattern(level, params); break;
+    case 'castle': bricks = generateCastlePattern(level, params); break;
+    case 'bars': bricks = generateBarsPattern(level, params); break;
     default: bricks = generateRowPattern(level, params);
   }
   

@@ -302,42 +302,70 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.stroke();
 };
 
-// Draw sticky/magnet paddle (paddle with green vortex)
+// Draw magnet icon (horseshoe magnet shape)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  // Red/cyan magnet horseshoe
-  const magnetSize = size * 0.4;
+  const magnetSize = size * 0.45;
   
-  // Left side (red)
-  ctx.fillStyle = 'hsl(0, 85%, 55%)';
+  ctx.save();
+  ctx.translate(x, y);
+  
+  // U-shaped magnet body
+  const armWidth = magnetSize * 0.35;
+  const innerRadius = magnetSize * 0.4;
+  const outerRadius = innerRadius + armWidth;
+  
+  // Draw the horseshoe (U shape)
   ctx.beginPath();
-  ctx.arc(x - magnetSize * 0.3, y + magnetSize * 0.2, magnetSize * 0.35, Math.PI * 0.8, Math.PI * 1.5);
-  ctx.lineTo(x - magnetSize * 0.3, y - magnetSize * 0.5);
-  ctx.lineTo(x - magnetSize * 0.05, y - magnetSize * 0.5);
-  ctx.lineTo(x - magnetSize * 0.05, y + magnetSize * 0.05);
-  ctx.arc(x - magnetSize * 0.3, y + magnetSize * 0.2, magnetSize * 0.15, Math.PI * 1.5, Math.PI * 0.8, true);
+  // Left arm outer
+  ctx.moveTo(-outerRadius, -magnetSize * 0.6);
+  ctx.lineTo(-outerRadius, magnetSize * 0.1);
+  // Bottom curve outer
+  ctx.arc(0, magnetSize * 0.1, outerRadius, Math.PI, 0, false);
+  // Right arm outer
+  ctx.lineTo(outerRadius, -magnetSize * 0.6);
+  // Right arm inner
+  ctx.lineTo(innerRadius, -magnetSize * 0.6);
+  ctx.lineTo(innerRadius, magnetSize * 0.1);
+  // Bottom curve inner
+  ctx.arc(0, magnetSize * 0.1, innerRadius, 0, Math.PI, true);
+  // Left arm inner
+  ctx.lineTo(-innerRadius, -magnetSize * 0.6);
   ctx.closePath();
+  
+  // Gradient fill
+  const magnetGrad = ctx.createLinearGradient(-outerRadius, 0, outerRadius, 0);
+  magnetGrad.addColorStop(0, 'hsl(0, 85%, 55%)'); // Red
+  magnetGrad.addColorStop(0.4, 'hsl(0, 85%, 45%)');
+  magnetGrad.addColorStop(0.6, 'hsl(200, 85%, 45%)');
+  magnetGrad.addColorStop(1, 'hsl(200, 100%, 55%)'); // Blue
+  ctx.fillStyle = magnetGrad;
   ctx.fill();
   
-  // Right side (cyan)
-  ctx.fillStyle = 'hsl(195, 100%, 55%)';
-  ctx.beginPath();
-  ctx.arc(x + magnetSize * 0.3, y + magnetSize * 0.2, magnetSize * 0.35, Math.PI * 1.5, Math.PI * 0.2);
-  ctx.lineTo(x + magnetSize * 0.3, y - magnetSize * 0.5);
-  ctx.lineTo(x + magnetSize * 0.05, y - magnetSize * 0.5);
-  ctx.lineTo(x + magnetSize * 0.05, y + magnetSize * 0.05);
-  ctx.arc(x + magnetSize * 0.3, y + magnetSize * 0.2, magnetSize * 0.15, Math.PI * 0.2, Math.PI * 1.5, true);
-  ctx.closePath();
-  ctx.fill();
+  // Pole tips (red on left, blue on right)
+  ctx.fillStyle = 'hsl(0, 90%, 60%)';
+  ctx.fillRect(-outerRadius, -magnetSize * 0.6, armWidth, magnetSize * 0.15);
   
-  // Spark at top
-  ctx.fillStyle = 'hsl(30, 100%, 55%)';
+  ctx.fillStyle = 'hsl(200, 100%, 60%)';
+  ctx.fillRect(innerRadius, -magnetSize * 0.6, armWidth, magnetSize * 0.15);
+  
+  // Highlight on top
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.fillRect(-outerRadius + 1, -magnetSize * 0.58, armWidth - 2, magnetSize * 0.08);
+  ctx.fillRect(innerRadius + 1, -magnetSize * 0.58, armWidth - 2, magnetSize * 0.08);
+  
+  // Magnetic field lines
+  ctx.strokeStyle = 'rgba(255, 255, 100, 0.6)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
   ctx.beginPath();
-  ctx.moveTo(x, y - magnetSize * 0.6);
-  ctx.lineTo(x - magnetSize * 0.15, y - magnetSize * 0.3);
-  ctx.lineTo(x, y - magnetSize * 0.4);
-  ctx.lineTo(x + magnetSize * 0.15, y - magnetSize * 0.3);
-  ctx.closePath();
-  ctx.fill();
+  ctx.arc(0, -magnetSize * 0.3, magnetSize * 0.25, 0, Math.PI, true);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -magnetSize * 0.3, magnetSize * 0.4, 0, Math.PI, true);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  ctx.restore();
 };
 
 // Draw laser paddle (paddle with laser beams)

@@ -495,8 +495,8 @@ export const drawPremiumBrick = (
   }
   
   // Draw based on brick type and material
-  if (type === 'indestructible') {
-    // Use special steel brick for indestructible
+  if (type === 'indestructible' || type === 'steel') {
+    // Use special steel brick for indestructible and steel types
     drawSteelBrick(ctx, x, y, width, height);
   } else {
     // Draw based on material type
@@ -547,39 +547,60 @@ const drawBrickTypeIndicator = (
   
   switch (type) {
     case 'explosive':
-      // Bomb icon
-      ctx.fillStyle = 'rgba(255, 100, 50, 0.9)';
+      // Black bomb icon
+      ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
       ctx.beginPath();
-      ctx.arc(centerX, centerY + 2, 6, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY + 2, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 200, 50, 0.9)';
+      // Bomb outline
+      ctx.strokeStyle = 'rgba(80, 80, 80, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY + 2, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      // Fuse
+      ctx.strokeStyle = 'rgba(139, 90, 43, 0.9)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(centerX, centerY - 4);
-      ctx.lineTo(centerX + 3, centerY - 8);
+      ctx.moveTo(centerX, centerY - 5);
+      ctx.lineTo(centerX + 2, centerY - 9);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(255, 220, 100, 0.9)';
+      // Spark/flame
+      ctx.fillStyle = 'rgba(255, 200, 50, 0.95)';
       ctx.beginPath();
-      ctx.arc(centerX + 3, centerY - 9, 2, 0, Math.PI * 2);
+      ctx.arc(centerX + 2, centerY - 10, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 100, 50, 0.8)';
+      ctx.beginPath();
+      ctx.arc(centerX + 2, centerY - 10, 1.5, 0, Math.PI * 2);
       ctx.fill();
       break;
       
     case 'indestructible':
-      // Steel X pattern with rivets
-      ctx.strokeStyle = 'rgba(200, 210, 220, 0.7)';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x + 10, y + 5);
-      ctx.lineTo(x + width - 10, y + height - 5);
-      ctx.moveTo(x + width - 10, y + 5);
-      ctx.lineTo(x + 10, y + height - 5);
-      ctx.stroke();
-      // Subtle glow
-      ctx.shadowColor = 'rgba(150, 170, 200, 0.3)';
-      ctx.shadowBlur = 4;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+    case 'steel':
+      // Steel X pattern with rivets - show hit count for steel
+      if (type === 'steel' && hits > 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.font = 'bold 11px sans-serif';
+        ctx.strokeText(hits.toString(), centerX, centerY);
+        ctx.fillText(hits.toString(), centerX, centerY);
+      } else {
+        ctx.strokeStyle = 'rgba(200, 210, 220, 0.7)';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y + 5);
+        ctx.lineTo(x + width - 10, y + height - 5);
+        ctx.moveTo(x + width - 10, y + 5);
+        ctx.lineTo(x + 10, y + height - 5);
+        ctx.stroke();
+        ctx.shadowColor = 'rgba(150, 170, 200, 0.3)';
+        ctx.shadowBlur = 4;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
       break;
       
     case 'moving':
