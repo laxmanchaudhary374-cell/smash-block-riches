@@ -9,48 +9,53 @@ const POWERUP_HEIGHT = 26;
 
 // ============ ICON DRAWING FUNCTIONS ============
 
-// Draw fiery ball icon (orange/yellow ball with flame trail)
+// Draw fiery ball icon (ball engulfed in flames)
 const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  // Flame trail
-  const flameGrad = ctx.createRadialGradient(x + size * 0.4, y, size * 0.2, x + size * 0.8, y, size * 0.8);
-  flameGrad.addColorStop(0, 'hsl(40, 100%, 60%)');
-  flameGrad.addColorStop(0.5, 'hsl(25, 100%, 50%)');
+  // Outer flame aura
+  const flameGrad = ctx.createRadialGradient(x, y, size * 0.15, x, y, size * 0.5);
+  flameGrad.addColorStop(0, 'hsla(50, 100%, 70%, 0.9)');
+  flameGrad.addColorStop(0.4, 'hsla(30, 100%, 55%, 0.7)');
+  flameGrad.addColorStop(0.7, 'hsla(15, 100%, 50%, 0.4)');
   flameGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = flameGrad;
   ctx.beginPath();
-  ctx.ellipse(x + size * 0.5, y, size * 0.7, size * 0.4, 0, 0, Math.PI * 2);
+  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
   ctx.fill();
   
-  // Fire spikes
-  ctx.fillStyle = 'hsl(30, 100%, 50%)';
-  for (let i = 0; i < 5; i++) {
-    const angle = (i / 5) * Math.PI - Math.PI / 2;
-    const spikeX = x + size * 0.3 + Math.cos(angle) * size * 0.5;
-    const spikeY = y + Math.sin(angle) * size * 0.25;
+  // Flame tongues around the ball
+  ctx.fillStyle = 'hsl(30, 100%, 55%)';
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const flameLen = size * (0.3 + Math.random() * 0.15);
+    const tipX = x + Math.cos(angle) * flameLen;
+    const tipY = y + Math.sin(angle) * flameLen;
+    const base1X = x + Math.cos(angle - 0.3) * size * 0.2;
+    const base1Y = y + Math.sin(angle - 0.3) * size * 0.2;
+    const base2X = x + Math.cos(angle + 0.3) * size * 0.2;
+    const base2Y = y + Math.sin(angle + 0.3) * size * 0.2;
+    
     ctx.beginPath();
-    ctx.moveTo(spikeX, spikeY);
-    ctx.lineTo(spikeX + size * 0.4, spikeY + size * 0.1);
-    ctx.lineTo(spikeX + size * 0.3, spikeY - size * 0.1);
-    ctx.closePath();
+    ctx.moveTo(base1X, base1Y);
+    ctx.quadraticCurveTo(tipX, tipY, base2X, base2Y);
     ctx.fill();
   }
   
-  // Main ball
-  const ballGrad = ctx.createRadialGradient(x - size * 0.15, y - size * 0.15, 0, x, y, size * 0.4);
-  ballGrad.addColorStop(0, 'hsl(50, 100%, 85%)');
-  ballGrad.addColorStop(0.3, 'hsl(35, 100%, 60%)');
-  ballGrad.addColorStop(0.7, 'hsl(20, 100%, 50%)');
-  ballGrad.addColorStop(1, 'hsl(10, 100%, 40%)');
+  // Main ball (hot core)
+  const ballGrad = ctx.createRadialGradient(x - size * 0.1, y - size * 0.1, 0, x, y, size * 0.25);
+  ballGrad.addColorStop(0, 'hsl(60, 100%, 95%)');
+  ballGrad.addColorStop(0.3, 'hsl(45, 100%, 70%)');
+  ballGrad.addColorStop(0.6, 'hsl(30, 100%, 55%)');
+  ballGrad.addColorStop(1, 'hsl(15, 100%, 45%)');
   
   ctx.fillStyle = ballGrad;
   ctx.beginPath();
-  ctx.arc(x, y, size * 0.35, 0, Math.PI * 2);
+  ctx.arc(x, y, size * 0.25, 0, Math.PI * 2);
   ctx.fill();
   
   // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.beginPath();
-  ctx.arc(x - size * 0.12, y - size * 0.12, size * 0.1, 0, Math.PI * 2);
+  ctx.arc(x - size * 0.08, y - size * 0.08, size * 0.07, 0, Math.PI * 2);
   ctx.fill();
 };
 

@@ -433,13 +433,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         setCombo(0);
         setComboTimer(0);
         
-        // Reset ball
-        return [{
+        // Reset ball - wait for touch to launch (velocity 0)
+        magnetBallRef.current = {
           id: generateId(),
           position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 60 },
-          velocity: { dx: (Math.random() - 0.5) * 100, dy: -ballSpeed },
+          velocity: { dx: 0, dy: 0 },
           radius: BALL_RADIUS,
-        }];
+        };
+        return [magnetBallRef.current];
       }
 
       return aliveBalls;
@@ -644,47 +645,43 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               setTimeout(() => setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH })), 10000);
               break;
             case 'multiball':
-              // Create 2 balls (doubling existing)
+              // Double every existing ball (each ball becomes 2)
               setBalls(prev => {
-                if (prev.length < 6) {
-                  const newBalls = prev.flatMap(ball => [
-                    ball,
-                    {
-                      ...ball,
-                      id: generateId(),
-                      velocity: {
-                        dx: ball.velocity.dx + (Math.random() - 0.5) * 100,
-                        dy: ball.velocity.dy,
-                      },
+                const newBalls = prev.flatMap(ball => [
+                  ball,
+                  {
+                    ...ball,
+                    id: generateId(),
+                    velocity: {
+                      dx: ball.velocity.dx + (Math.random() - 0.5) * 150,
+                      dy: ball.velocity.dy,
                     },
-                  ]);
-                  return newBalls;
-                }
-                return prev;
+                  },
+                ]);
+                return newBalls;
               });
               break;
             case 'sevenball':
-              // Create 7 balls total
+              // Multiply each existing ball by 7
               setBalls(prev => {
-                const baseBall = prev[0] || {
-                  id: generateId(),
-                  position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 60 },
-                  velocity: { dx: 0, dy: -ballSpeed },
-                  radius: BALL_RADIUS,
-                };
-                const newBalls: Ball[] = [baseBall];
-                for (let i = 0; i < 6; i++) {
-                  const angle = (i / 6) * Math.PI * 2;
-                  newBalls.push({
-                    id: generateId(),
-                    position: { ...baseBall.position },
-                    velocity: {
-                      dx: Math.sin(angle) * ballSpeed * 0.5,
-                      dy: -Math.abs(Math.cos(angle) * ballSpeed),
-                    },
-                    radius: BALL_RADIUS,
-                  });
-                }
+                const newBalls: Ball[] = [];
+                prev.forEach(ball => {
+                  // Keep original ball
+                  newBalls.push(ball);
+                  // Add 6 more balls spreading from each existing ball
+                  for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    newBalls.push({
+                      id: generateId(),
+                      position: { ...ball.position },
+                      velocity: {
+                        dx: ball.velocity.dx + Math.sin(angle) * ballSpeed * 0.5,
+                        dy: ball.velocity.dy + Math.cos(angle) * ballSpeed * 0.3,
+                      },
+                      radius: ball.radius,
+                    });
+                  }
+                });
                 return newBalls;
               });
               break;
