@@ -169,7 +169,91 @@ const drawIceBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.globalAlpha = 1;
 };
 
-// Draw metal brick with matte texture
+// Draw steel brick (for indestructible bricks) with rivets and industrial look
+const drawSteelBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  const borderRadius = 3;
+  
+  // Drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath();
+  ctx.roundRect(x + 2, y + 2, w, h, borderRadius);
+  ctx.fill();
+  
+  // Main steel body with brushed metal gradient
+  const steelGrad = ctx.createLinearGradient(x, y, x, y + h);
+  steelGrad.addColorStop(0, 'hsl(220, 10%, 55%)');
+  steelGrad.addColorStop(0.15, 'hsl(220, 8%, 45%)');
+  steelGrad.addColorStop(0.5, 'hsl(220, 6%, 35%)');
+  steelGrad.addColorStop(0.85, 'hsl(220, 8%, 40%)');
+  steelGrad.addColorStop(1, 'hsl(220, 5%, 25%)');
+  
+  ctx.fillStyle = steelGrad;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Horizontal brushed lines texture
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 6; i++) {
+    const lineY = y + 3 + (h - 6) * (i / 5);
+    ctx.beginPath();
+    ctx.moveTo(x + 3, lineY);
+    ctx.lineTo(x + w - 3, lineY);
+    ctx.stroke();
+  }
+  
+  // Industrial border frame
+  ctx.strokeStyle = 'hsl(220, 10%, 25%)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(x + 1, y + 1, w - 2, h - 2, borderRadius - 1);
+  ctx.stroke();
+  
+  // Rivet/bolts at corners
+  const rivetRadius = 2.5;
+  const rivetOffset = 5;
+  const rivetPositions = [
+    { rx: x + rivetOffset, ry: y + rivetOffset },
+    { rx: x + w - rivetOffset, ry: y + rivetOffset },
+    { rx: x + rivetOffset, ry: y + h - rivetOffset },
+    { rx: x + w - rivetOffset, ry: y + h - rivetOffset },
+  ];
+  
+  rivetPositions.forEach(({ rx, ry }) => {
+    // Rivet shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.arc(rx + 0.5, ry + 0.5, rivetRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Rivet body
+    const rivetGrad = ctx.createRadialGradient(rx - 1, ry - 1, 0, rx, ry, rivetRadius);
+    rivetGrad.addColorStop(0, 'hsl(220, 5%, 60%)');
+    rivetGrad.addColorStop(0.5, 'hsl(220, 5%, 45%)');
+    rivetGrad.addColorStop(1, 'hsl(220, 8%, 30%)');
+    ctx.fillStyle = rivetGrad;
+    ctx.beginPath();
+    ctx.arc(rx, ry, rivetRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Rivet highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.beginPath();
+    ctx.arc(rx - 0.5, ry - 0.5, rivetRadius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  // Top highlight edge
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + borderRadius, y + 1);
+  ctx.lineTo(x + w - borderRadius, y + 1);
+  ctx.stroke();
+};
+
+// Draw metal brick with matte texture (original)
 const drawMetalBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
   const borderRadius = 4;
   const borderWidth = 2;
@@ -410,25 +494,31 @@ export const drawPremiumBrick = (
     ctx.globalAlpha = 0.6 + damageRatio * 0.4;
   }
   
-  // Draw based on material type
-  switch (material) {
-    case 'copper':
-      drawCopperBrick(ctx, x, y, width, height, colors);
-      break;
-    case 'ice':
-      drawIceBrick(ctx, x, y, width, height, colors);
-      break;
-    case 'metal':
-      drawMetalBrick(ctx, x, y, width, height, colors);
-      break;
-    case 'wood':
-      drawWoodBrick(ctx, x, y, width, height, colors);
-      break;
-    case 'diamond':
-      drawDiamondBrick(ctx, x, y, width, height, colors);
-      break;
-    default:
-      drawGlassBrick(ctx, x, y, width, height, colors);
+  // Draw based on brick type and material
+  if (type === 'indestructible') {
+    // Use special steel brick for indestructible
+    drawSteelBrick(ctx, x, y, width, height);
+  } else {
+    // Draw based on material type
+    switch (material) {
+      case 'copper':
+        drawCopperBrick(ctx, x, y, width, height, colors);
+        break;
+      case 'ice':
+        drawIceBrick(ctx, x, y, width, height, colors);
+        break;
+      case 'metal':
+        drawMetalBrick(ctx, x, y, width, height, colors);
+        break;
+      case 'wood':
+        drawWoodBrick(ctx, x, y, width, height, colors);
+        break;
+      case 'diamond':
+        drawDiamondBrick(ctx, x, y, width, height, colors);
+        break;
+      default:
+        drawGlassBrick(ctx, x, y, width, height, colors);
+    }
   }
   
   // Draw special type indicators
@@ -475,16 +565,21 @@ const drawBrickTypeIndicator = (
       break;
       
     case 'indestructible':
-      // X pattern
-      ctx.strokeStyle = 'rgba(150, 160, 180, 0.8)';
-      ctx.lineWidth = 2;
+      // Steel X pattern with rivets
+      ctx.strokeStyle = 'rgba(200, 210, 220, 0.7)';
+      ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(x + 8, y + 6);
-      ctx.lineTo(x + width - 8, y + height - 6);
-      ctx.moveTo(x + width - 8, y + 6);
-      ctx.lineTo(x + 8, y + height - 6);
+      ctx.moveTo(x + 10, y + 5);
+      ctx.lineTo(x + width - 10, y + height - 5);
+      ctx.moveTo(x + width - 10, y + 5);
+      ctx.lineTo(x + 10, y + height - 5);
       ctx.stroke();
+      // Subtle glow
+      ctx.shadowColor = 'rgba(150, 170, 200, 0.3)';
+      ctx.shadowBlur = 4;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
       break;
       
     case 'moving':

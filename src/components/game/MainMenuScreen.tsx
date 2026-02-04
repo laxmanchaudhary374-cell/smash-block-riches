@@ -147,7 +147,7 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
         <div className="grid grid-cols-4 gap-3 w-full mb-6">
           {levels.map((level) => {
             const isUnlocked = level <= unlockedLevel;
-            const isCompleted = level < unlockedLevel;
+            const isCompleted = level < unlockedLevel; // Completed levels are always unlocked
             
             return (
               <button
