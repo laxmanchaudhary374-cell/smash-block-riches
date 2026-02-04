@@ -32,6 +32,7 @@ export interface LevelBrickConfig {
 export const B = (color: BrickColor, hits: number = 1): BrickDef => ({ color, hits, type: 'normal' });
 export const EX = (color: BrickColor): BrickDef => ({ color, type: 'explosive', hits: 1 });
 export const IN = (): BrickDef => ({ color: 'purple', type: 'indestructible' });
+export const ST = (): BrickDef => ({ color: 'purple', type: 'steel', hits: 2 }); // Steel brick - 2 hits to break
 export const MV = (color: BrickColor, speed = 60, range = 30): BrickDef => ({ 
   color, type: 'moving', hits: 1, moveSpeed: speed, moveRange: range 
 });

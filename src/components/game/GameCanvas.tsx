@@ -75,6 +75,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
+  const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize level - also reinitialize when level changes
   useEffect(() => {
@@ -292,9 +293,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         // Release magnet ball on touch
         if (magnetBallRef.current) {
           releaseMagnetBall();
-        } else {
-          fireLaser();
         }
+        // Laser fires automatically now - no manual fire on touch
       }
     };
 
@@ -303,9 +303,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         // Release magnet ball on click
         if (magnetBallRef.current) {
           releaseMagnetBall();
-        } else {
-          fireLaser();
         }
+        // Laser fires automatically now - no manual fire on click
       }
     };
 
@@ -320,7 +319,30 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('click', handleClick);
     };
-  }, [gameState.status, handlePointerMove, fireLaser, ballSpeed]);
+  }, [gameState.status, handlePointerMove, ballSpeed]);
+  
+  // Auto-fire laser when paddle has laser power-up
+  useEffect(() => {
+    if (paddle.hasLaser && gameState.status === 'playing') {
+      // Start auto-fire interval
+      laserAutoFireRef.current = setInterval(() => {
+        fireLaser();
+      }, 300); // Fire every 0.3 seconds
+    } else {
+      // Clear interval when laser power-up ends
+      if (laserAutoFireRef.current) {
+        clearInterval(laserAutoFireRef.current);
+        laserAutoFireRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (laserAutoFireRef.current) {
+        clearInterval(laserAutoFireRef.current);
+        laserAutoFireRef.current = null;
+      }
+    };
+  }, [paddle.hasLaser, gameState.status, fireLaser]);
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
@@ -645,38 +667,46 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               setTimeout(() => setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH })), 10000);
               break;
             case 'multiball':
-              // Double every existing ball (each ball becomes 2)
+              // Double every existing ball (each ball becomes 2) - all go upward
               setBalls(prev => {
-                const newBalls = prev.flatMap(ball => [
-                  ball,
-                  {
-                    ...ball,
-                    id: generateId(),
-                    velocity: {
-                      dx: ball.velocity.dx + (Math.random() - 0.5) * 150,
-                      dy: ball.velocity.dy,
+                const newBalls = prev.flatMap(ball => {
+                  const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
+                  return [
+                    {
+                      ...ball,
+                      velocity: {
+                        dx: -speed * 0.3,
+                        dy: -Math.abs(speed), // Always upward
+                      },
                     },
-                  },
-                ]);
+                    {
+                      ...ball,
+                      id: generateId(),
+                      velocity: {
+                        dx: speed * 0.3,
+                        dy: -Math.abs(speed), // Always upward
+                      },
+                    },
+                  ];
+                });
                 return newBalls;
               });
               break;
             case 'sevenball':
-              // Multiply each existing ball by 7
+              // Multiply each existing ball by 7 - all go upward first
               setBalls(prev => {
                 const newBalls: Ball[] = [];
                 prev.forEach(ball => {
-                  // Keep original ball
-                  newBalls.push(ball);
-                  // Add 6 more balls spreading from each existing ball
-                  for (let i = 0; i < 6; i++) {
-                    const angle = (i / 6) * Math.PI * 2;
+                  const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
+                  // Create 7 balls spreading in a fan pattern upward
+                  for (let i = 0; i < 7; i++) {
+                    const spreadAngle = ((i - 3) / 3) * (Math.PI * 0.4); // Spread from -40 to +40 degrees
                     newBalls.push({
-                      id: generateId(),
+                      id: i === 0 ? ball.id : generateId(),
                       position: { ...ball.position },
                       velocity: {
-                        dx: ball.velocity.dx + Math.sin(angle) * ballSpeed * 0.5,
-                        dy: ball.velocity.dy + Math.cos(angle) * ballSpeed * 0.3,
+                        dx: Math.sin(spreadAngle) * speed,
+                        dy: -Math.abs(Math.cos(spreadAngle) * speed), // Always upward
                       },
                       radius: ball.radius,
                     });
@@ -950,6 +980,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       paddle.hasMagnet,
       paddle.hasShield
     );
+
+    // Draw aiming line when ball is stationary on paddle (magnetized or waiting to launch)
+    if (magnetBallRef.current) {
+      const ball = balls.find(b => b.id === magnetBallRef.current?.id);
+      if (ball) {
+        const startX = ball.position.x;
+        const startY = ball.position.y;
+        const lineLength = 150;
+        
+        // Draw aiming line pointing upward
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.lineDashOffset = -gameTime * 30; // Animate the dash
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY - ball.radius);
+        ctx.lineTo(startX, startY - ball.radius - lineLength);
+        ctx.stroke();
+        
+        // Draw arrow tip
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.beginPath();
+        ctx.moveTo(startX, startY - ball.radius - lineLength - 10);
+        ctx.lineTo(startX - 6, startY - ball.radius - lineLength);
+        ctx.lineTo(startX + 6, startY - ball.radius - lineLength);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+      }
+    }
 
     // Draw balls with premium 3D rendering
     balls.forEach(ball => {

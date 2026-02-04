@@ -347,6 +347,14 @@ class AudioManager {
     if (this.musicGain) {
       this.musicGain.gain.value = this._musicVolume;
     }
+    // Stop music completely when volume is 0
+    if (this._musicVolume === 0 && this.backgroundMusic) {
+      this.backgroundMusic.stop();
+      this.backgroundMusic = null;
+    } else if (this._musicVolume > 0 && this.isMusicPlaying && !this.backgroundMusic) {
+      // Restart music if volume goes back up
+      this.playMusicFromBuffer();
+    }
   }
 
   get masterVolume(): number {
