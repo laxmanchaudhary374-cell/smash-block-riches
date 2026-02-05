@@ -4,7 +4,7 @@
 import { LevelConfig, BrickColor } from '@/types/game';
 import { 
   createBrickRow, createPyramid, createCheckerboard, createVShape,
-  B, EX, IN, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
+  B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
 
 // Pattern types for variety
@@ -15,17 +15,22 @@ const getDifficultyParams = (level: number) => {
   const tier = Math.floor((level - 1) / 50); // 0-9 for 500 levels
   const tierProgress = ((level - 1) % 50) / 50;
   
+  // Scale rows based on level (more bricks at higher levels)
+  const baseRows = 5;
+  const additionalRows = Math.floor(level / 20); // +1 row every 20 levels
+  const maxRows = 10;
+  
   return {
     ballSpeed: 280 + level * 0.8 + tier * 20,
     maxHits: Math.min(1 + Math.floor(tier / 2), 4),
     explosiveChance: 0.05 + tier * 0.02,
-    steelChance: Math.min(0.02 + tier * 0.015, 0.1), // Renamed from indestructible - now 2-hit steel
+    steelChance: Math.min(0.02 + tier * 0.015, 0.12), // Steel bricks (2-hit)
     movingChance: 0.03 + tier * 0.02,
     chainChance: 0.04 + tier * 0.01,
     coinChance: 0.08 - tier * 0.005,
     ghostChance: tier >= 2 ? 0.03 + tier * 0.01 : 0,
     rainbowChance: tier >= 1 ? 0.02 + tier * 0.005 : 0,
-    rows: Math.min(5 + Math.floor(tier / 2), 10), // More rows with smaller bricks
+    rows: Math.min(baseRows + additionalRows, maxRows), // More rows as levels increase
     cols: 8, // More columns with smaller bricks
   };
 };
@@ -200,7 +205,7 @@ const generateFortressPattern = (level: number, params: ReturnType<typeof getDif
       const isBottom = row === params.rows - 1;
       
       if ((isEdge || isTop) && Math.random() < 0.4 + level * 0.005) {
-        rowBricks.push(IN());
+        rowBricks.push(ST()); // Steel brick instead of indestructible
       } else if (isEdge) {
         rowBricks.push(B(COLORS[level % COLORS.length], 2));
       } else {
@@ -316,13 +321,13 @@ const generateBossPattern = (level: number, params: ReturnType<typeof getDifficu
   const bricks: LevelConfig['bricks'] = [];
   const bossHits = 3 + Math.floor(level / 100);
   
-  // Fortified center
-  bricks.push(...createBrickRow(0, [IN(), B('red', bossHits), B('red', bossHits), B('red', bossHits), B('red', bossHits), IN()]));
+  // Fortified center - using ST() (steel) instead of IN() (indestructible)
+  bricks.push(...createBrickRow(0, [ST(), B('red', bossHits), B('red', bossHits), B('red', bossHits), B('red', bossHits), ST()]));
   bricks.push(...createBrickRow(1, [MV('purple', 80), EX('red'), B('orange', bossHits - 1), B('orange', bossHits - 1), EX('red'), MV('purple', 80)]));
-  bricks.push(...createBrickRow(2, [IN(), CH('yellow'), B('magenta', bossHits - 1), B('magenta', bossHits - 1), CH('yellow'), IN()]));
+  bricks.push(...createBrickRow(2, [ST(), CH('yellow'), B('magenta', bossHits - 1), B('magenta', bossHits - 1), CH('yellow'), ST()]));
   bricks.push(...createBrickRow(3, [CO(), EX('red'), null, null, EX('red'), CO()]));
   bricks.push(...createBrickRow(4, [MV('cyan', 70), B('cyan', 2), EX('red'), EX('red'), B('cyan', 2), MV('cyan', 70)]));
-  bricks.push(...createBrickRow(5, [IN(), 'green', CO(), CO(), 'green', IN()]));
+  bricks.push(...createBrickRow(5, [ST(), 'green', CO(), CO(), 'green', ST()]));
   
   if (params.rows > 6) {
     bricks.push(...createBrickRow(6, [CH('gold'), CH('gold'), CH('gold'), CH('gold'), CH('gold'), CH('gold')]));

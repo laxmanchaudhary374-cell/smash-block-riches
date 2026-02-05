@@ -10,6 +10,7 @@ import LevelCompleteScreen from './LevelCompleteScreen';
 import AudioControls from './AudioControls';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
+import { Pause, Play } from 'lucide-react';
 
 const STORAGE_KEY = 'neon_breaker_highscore';
 const LEVEL_KEY = 'neon_breaker_unlocked_level';
@@ -48,7 +49,7 @@ const setStoredUnlockedLevel = (level: number): void => {
   }
 };
 
-type ScreenState = 'splash' | 'menu' | 'playing' | 'gameover' | 'levelcomplete' | 'won';
+type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
 
 const BrickBreakerGame: React.FC = () => {
   const [screenState, setScreenState] = useState<ScreenState>('splash');
@@ -184,6 +185,17 @@ const BrickBreakerGame: React.FC = () => {
     }
   }, [screenState]);
 
+  // Toggle pause
+  const handleTogglePause = useCallback(() => {
+    if (screenState === 'playing') {
+      setScreenState('paused');
+      setGameState(prev => ({ ...prev, status: 'paused' }));
+    } else if (screenState === 'paused') {
+      setScreenState('playing');
+      setGameState(prev => ({ ...prev, status: 'playing' }));
+    }
+  }, [screenState]);
+
   // Show splash screen
   if (screenState === 'splash') {
     return <SplashScreen onPlay={handlePlayFromSplash} />;
@@ -213,7 +225,22 @@ const BrickBreakerGame: React.FC = () => {
       {/* Dark overlay for gameplay visibility */}
       <div className="fixed inset-0 bg-black/40 pointer-events-none" />
       
-      <AudioControls isPlaying={screenState === 'playing'} />
+      <AudioControls isPlaying={screenState === 'playing' || screenState === 'paused'} />
+      
+      {/* Pause Button - only visible during gameplay */}
+      {(screenState === 'playing' || screenState === 'paused') && (
+        <button
+          onClick={handleTogglePause}
+          className="fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
+        >
+          {screenState === 'paused' ? (
+            <Play className="w-5 h-5 text-neon-cyan" />
+          ) : (
+            <Pause className="w-5 h-5 text-neon-cyan" />
+          )}
+        </button>
+      )}
+      
       <div className="relative z-10 mb-4 text-center">
         <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">
           NEON BREAKER
@@ -236,6 +263,15 @@ const BrickBreakerGame: React.FC = () => {
         />
 
         {/* Overlays */}
+        {screenState === 'paused' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg">
+            <div className="text-center">
+              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-4">PAUSED</h2>
+              <p className="font-game text-sm text-muted-foreground">Tap the play button to resume</p>
+            </div>
+          </div>
+        )}
+        
         {screenState === 'gameover' && (
           <GameOverScreen
             gameState={gameState}

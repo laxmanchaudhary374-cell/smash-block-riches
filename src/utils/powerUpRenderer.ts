@@ -227,79 +227,114 @@ const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size:
   ctx.fill();
 };
 
-// Draw big paddle icon (red/cyan paddle)
+// Draw big paddle icon (white paddle with outward arrows)
 const drawWidenIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const paddleWidth = size * 0.9;
-  const paddleHeight = size * 0.3;
+  const paddleWidth = size * 0.6;
+  const paddleHeight = size * 0.25;
   
-  // Outer cyan frame
-  const frameGrad = ctx.createLinearGradient(x - paddleWidth/2, y, x + paddleWidth/2, y);
-  frameGrad.addColorStop(0, 'hsl(195, 100%, 55%)');
-  frameGrad.addColorStop(0.5, 'hsl(195, 100%, 65%)');
-  frameGrad.addColorStop(1, 'hsl(195, 100%, 55%)');
+  // White paddle body
+  const bodyGrad = ctx.createLinearGradient(x - paddleWidth/2, y - paddleHeight/2, x - paddleWidth/2, y + paddleHeight/2);
+  bodyGrad.addColorStop(0, 'hsl(0, 0%, 95%)');
+  bodyGrad.addColorStop(0.5, 'hsl(0, 0%, 85%)');
+  bodyGrad.addColorStop(1, 'hsl(0, 0%, 70%)');
   
-  ctx.fillStyle = frameGrad;
+  ctx.fillStyle = bodyGrad;
   ctx.beginPath();
   ctx.roundRect(x - paddleWidth/2, y - paddleHeight/2, paddleWidth, paddleHeight, paddleHeight/2);
   ctx.fill();
   
-  // Inner red core
-  const coreGrad = ctx.createLinearGradient(x - paddleWidth/2, y - paddleHeight/4, x - paddleWidth/2, y + paddleHeight/4);
-  coreGrad.addColorStop(0, 'hsl(0, 90%, 60%)');
-  coreGrad.addColorStop(0.5, 'hsl(0, 85%, 50%)');
-  coreGrad.addColorStop(1, 'hsl(0, 80%, 40%)');
+  // Subtle border
+  ctx.strokeStyle = 'hsl(0, 0%, 60%)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
   
-  ctx.fillStyle = coreGrad;
+  // Outward arrows (white arrows pointing out)
+  ctx.strokeStyle = 'hsl(195, 100%, 50%)';
+  ctx.fillStyle = 'hsl(195, 100%, 60%)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  // Left arrow pointing left (outward)
   ctx.beginPath();
-  ctx.roundRect(x - paddleWidth/2 + 3, y - paddleHeight/2 + 2, paddleWidth - 6, paddleHeight - 4, (paddleHeight - 4)/2);
+  ctx.moveTo(x - paddleWidth/2 - size * 0.08, y);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.22, y);
+  ctx.stroke();
+  // Arrow head
+  ctx.beginPath();
+  ctx.moveTo(x - paddleWidth/2 - size * 0.22, y);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.14, y - size * 0.1);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.14, y + size * 0.1);
+  ctx.closePath();
   ctx.fill();
   
-  // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  // Right arrow pointing right (outward)
   ctx.beginPath();
-  ctx.roundRect(x - paddleWidth/4, y - paddleHeight/2 + 3, paddleWidth/2, paddleHeight/4, 2);
+  ctx.moveTo(x + paddleWidth/2 + size * 0.08, y);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.22, y);
+  ctx.stroke();
+  // Arrow head
+  ctx.beginPath();
+  ctx.moveTo(x + paddleWidth/2 + size * 0.22, y);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.14, y - size * 0.1);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.14, y + size * 0.1);
+  ctx.closePath();
   ctx.fill();
 };
 
-// Draw shrink paddle (smaller, with inward arrows)
+// Draw shrink paddle (white smaller paddle with inward arrows)
 const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const paddleWidth = size * 0.5;
-  const paddleHeight = size * 0.25;
+  const paddleWidth = size * 0.35;
+  const paddleHeight = size * 0.2;
   
-  // Outer dark frame
-  ctx.fillStyle = 'hsl(0, 40%, 35%)';
+  // White paddle body (smaller)
+  const bodyGrad = ctx.createLinearGradient(x - paddleWidth/2, y - paddleHeight/2, x - paddleWidth/2, y + paddleHeight/2);
+  bodyGrad.addColorStop(0, 'hsl(0, 0%, 85%)');
+  bodyGrad.addColorStop(0.5, 'hsl(0, 0%, 70%)');
+  bodyGrad.addColorStop(1, 'hsl(0, 0%, 55%)');
+  
+  ctx.fillStyle = bodyGrad;
   ctx.beginPath();
   ctx.roundRect(x - paddleWidth/2, y - paddleHeight/2, paddleWidth, paddleHeight, paddleHeight/2);
   ctx.fill();
   
-  // Inner darker core
-  ctx.fillStyle = 'hsl(0, 50%, 30%)';
-  ctx.beginPath();
-  ctx.roundRect(x - paddleWidth/2 + 2, y - paddleHeight/2 + 2, paddleWidth - 4, paddleHeight - 4, (paddleHeight - 4)/2);
-  ctx.fill();
+  // Subtle border
+  ctx.strokeStyle = 'hsl(0, 0%, 45%)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
   
-  // Inward arrows
-  ctx.strokeStyle = 'hsl(0, 60%, 50%)';
+  // Inward arrows (red arrows pointing inward)
+  ctx.strokeStyle = 'hsl(0, 80%, 50%)';
+  ctx.fillStyle = 'hsl(0, 80%, 55%)';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   
-  // Left arrow pointing right
+  // Left arrow pointing right (inward)
   ctx.beginPath();
-  ctx.moveTo(x - size * 0.4, y);
-  ctx.lineTo(x - size * 0.28, y);
-  ctx.moveTo(x - size * 0.35, y - size * 0.1);
-  ctx.lineTo(x - size * 0.28, y);
-  ctx.lineTo(x - size * 0.35, y + size * 0.1);
+  ctx.moveTo(x - size * 0.42, y);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.08, y);
   ctx.stroke();
+  // Arrow head
+  ctx.beginPath();
+  ctx.moveTo(x - paddleWidth/2 - size * 0.08, y);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.16, y - size * 0.08);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.16, y + size * 0.08);
+  ctx.closePath();
+  ctx.fill();
   
-  // Right arrow pointing left
+  // Right arrow pointing left (inward)
   ctx.beginPath();
-  ctx.moveTo(x + size * 0.4, y);
-  ctx.lineTo(x + size * 0.28, y);
-  ctx.moveTo(x + size * 0.35, y - size * 0.1);
-  ctx.lineTo(x + size * 0.28, y);
-  ctx.lineTo(x + size * 0.35, y + size * 0.1);
+  ctx.moveTo(x + size * 0.42, y);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.08, y);
   ctx.stroke();
+  // Arrow head
+  ctx.beginPath();
+  ctx.moveTo(x + paddleWidth/2 + size * 0.08, y);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.16, y - size * 0.08);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.16, y + size * 0.08);
+  ctx.closePath();
+  ctx.fill();
 };
 
 // Draw magnet icon (horseshoe magnet shape)
