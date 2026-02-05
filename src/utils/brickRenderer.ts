@@ -780,38 +780,56 @@ export const drawPremiumBall = (
   x: number,
   y: number,
   radius: number,
-  isFireball: boolean = false
+  isFireball: boolean = false,
+  isBigBall: boolean = false
 ): void => {
   ctx.save();
   
-  if (isFireball) {
-    // Fireball effect - orange/red glowing ball
-    ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
+  if (isFireball || isBigBall) {
+    // Fireball or BigBall effect - glowing powerful ball
+    const hue = isFireball ? 35 : 280; // Orange for fire, purple for big ball
+    const glowColor = isFireball ? 'rgba(255, 100, 0, 0.8)' : 'rgba(150, 50, 255, 0.8)';
+    ctx.shadowColor = glowColor;
     ctx.shadowBlur = 15;
     
     // Fire trail effect
-    const fireGrad = ctx.createRadialGradient(x + radius * 0.3, y + radius * 0.3, 0, x, y, radius * 1.5);
-    fireGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
-    fireGrad.addColorStop(0.3, 'hsl(35, 100%, 60%)');
-    fireGrad.addColorStop(0.6, 'hsl(20, 100%, 50%)');
-    fireGrad.addColorStop(1, 'hsla(0, 100%, 40%, 0)');
+    const outerGrad = ctx.createRadialGradient(x + radius * 0.3, y + radius * 0.3, 0, x, y, radius * 1.5);
+    if (isFireball) {
+      outerGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
+      outerGrad.addColorStop(0.3, 'hsl(35, 100%, 60%)');
+      outerGrad.addColorStop(0.6, 'hsl(20, 100%, 50%)');
+      outerGrad.addColorStop(1, 'hsla(0, 100%, 40%, 0)');
+    } else {
+      // Big ball - purple/blue power glow
+      outerGrad.addColorStop(0, 'hsl(280, 100%, 90%)');
+      outerGrad.addColorStop(0.3, 'hsl(270, 100%, 65%)');
+      outerGrad.addColorStop(0.6, 'hsl(260, 100%, 50%)');
+      outerGrad.addColorStop(1, 'hsla(250, 100%, 40%, 0)');
+    }
     
-    ctx.fillStyle = fireGrad;
+    ctx.fillStyle = outerGrad;
     ctx.beginPath();
     ctx.arc(x, y, radius * 1.3, 0, Math.PI * 2);
     ctx.fill();
     
     // Inner bright core
     const coreGrad = ctx.createRadialGradient(x - radius * 0.2, y - radius * 0.2, 0, x, y, radius);
-    coreGrad.addColorStop(0, 'hsl(50, 100%, 95%)');
-    coreGrad.addColorStop(0.4, 'hsl(40, 100%, 70%)');
-    coreGrad.addColorStop(1, 'hsl(25, 100%, 55%)');
+    if (isFireball) {
+      coreGrad.addColorStop(0, 'hsl(50, 100%, 95%)');
+      coreGrad.addColorStop(0.4, 'hsl(40, 100%, 70%)');
+      coreGrad.addColorStop(1, 'hsl(25, 100%, 55%)');
+    } else {
+      // Big ball core
+      coreGrad.addColorStop(0, 'hsl(280, 100%, 95%)');
+      coreGrad.addColorStop(0.4, 'hsl(275, 100%, 75%)');
+      coreGrad.addColorStop(1, 'hsl(265, 100%, 60%)');
+    }
     
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
-    
+
   } else {
     // Shiny steel/chrome ball
     
