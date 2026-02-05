@@ -72,10 +72,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [gameTime, setGameTime] = useState(0);
   const [combo, setCombo] = useState(0);
   const [comboTimer, setComboTimer] = useState(0);
+  const [isBigBall, setIsBigBall] = useState(false);
   
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
+  const aimAngleRef = useRef<number>(-Math.PI / 2); // Start pointing up (-90 degrees)
 
   // Initialize level - also reinitialize when level changes
   useEffect(() => {
@@ -98,6 +100,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       setCoins([]);
       setExplosions([]);
       setIsFireball(false);
+      setIsBigBall(false);
       setCombo(0);
       setComboTimer(0);
       setPaddle(prev => ({ 
@@ -129,6 +132,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       setCoins([]);
       setExplosions([]);
       magnetBallRef.current = null;
+      aimAngleRef.current = -Math.PI / 2;
     }
   }, [gameState.status]);
 
@@ -229,16 +233,33 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     return addScore ? scoreValue : 0;
   }, [combo, createParticles, handleExplosion]);
 
-  // Handle paddle movement
-  const handlePointerMove = useCallback((clientX: number) => {
+  // Handle paddle movement and aim direction
+  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
     const scaleX = GAME_WIDTH / rect.width;
+    const scaleY = GAME_HEIGHT / rect.height;
     const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
     paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
-  }, [paddle.width]);
+    
+    // Update aim angle if ball is on paddle
+    if (magnetBallRef.current) {
+      const ball = balls.find(b => b.id === magnetBallRef.current?.id);
+      if (ball) {
+        const dx = x - ball.position.x;
+        const dy = y - ball.position.y;
+        // Calculate angle from ball to touch point
+        let angle = Math.atan2(dy, dx);
+        // Clamp angle to upper hemisphere (-170 to -10 degrees)
+        if (angle > -Math.PI * 0.05) angle = -Math.PI * 0.05;
+        if (angle < -Math.PI * 0.95) angle = -Math.PI * 0.95;
+        aimAngleRef.current = angle;
+      }
+    }
+  }, [paddle.width, balls]);
 
   // Fire laser
   const fireLaser = useCallback(() => {
@@ -255,41 +276,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (gameState.status === 'playing') {
-        handlePointerMove(e.clientX);
+        handlePointerMove(e.clientX, e.clientY);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (gameState.status === 'playing' && e.touches.length > 0) {
         e.preventDefault();
-        handlePointerMove(e.touches[0].clientX);
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     };
 
     const releaseMagnetBall = () => {
       if (magnetBallRef.current) {
         const ballId = magnetBallRef.current.id;
+        const angle = aimAngleRef.current;
         magnetBallRef.current = null;
         audioManager.playMagnetRelease();
         // Give the ball velocity when released
         setBalls(prevBalls => prevBalls.map(ball => {
           if (ball.id === ballId) {
+            const speed = ballSpeed;
             return {
               ...ball,
               velocity: { 
-                dx: (Math.random() - 0.5) * 150, 
-                dy: -ballSpeed 
+                dx: Math.cos(angle) * speed, 
+                dy: Math.sin(angle) * speed 
               },
             };
           }
           return ball;
         }));
+        aimAngleRef.current = -Math.PI / 2; // Reset to up
       }
     };
 
     const handleTouchStart = (e: TouchEvent) => {
       if (gameState.status === 'playing' && e.touches.length > 0) {
-        handlePointerMove(e.touches[0].clientX);
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
         // Release magnet ball on touch
         if (magnetBallRef.current) {
           releaseMagnetBall();
@@ -430,7 +454,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         
         // Shield bounces ball back
         if (paddle.hasShield) {
-          setPaddle(prev => ({ ...prev, hasShield: false }));
+          // Shield stays active - don't deactivate on ball save
           ball.position.y = GAME_HEIGHT - 20;
           ball.velocity.dy = -Math.abs(ball.velocity.dy);
           createParticles(ball.position.x, GAME_HEIGHT - 10, 'hsl(200, 100%, 60%)', 10);
@@ -549,7 +573,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               return brick;
             }
             
-            const newHits = brick.hits - (isFireball ? brick.hits : 1);
+          // Big ball or fireball destroys any brick in one hit
+          const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
             
             if (newHits <= 0) {
               const score = destroyBrick(brick);
@@ -666,47 +691,45 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               setPaddle(prev => ({ ...prev, width: Math.max(40, prev.width - 20) }));
               setTimeout(() => setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH })), 10000);
               break;
-            case 'multiball':
-              // Double every existing ball (each ball becomes 2) - all go upward
-              setBalls(prev => {
-                const newBalls = prev.flatMap(ball => {
-                  const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
-                  return [
-                    {
-                      ...ball,
-                      velocity: {
-                        dx: -speed * 0.3,
-                        dy: -Math.abs(speed), // Always upward
-                      },
-                    },
-                    {
-                      ...ball,
-                      id: generateId(),
-                      velocity: {
-                        dx: speed * 0.3,
-                        dy: -Math.abs(speed), // Always upward
-                      },
-                    },
-                  ];
-                });
-                return newBalls;
-              });
-              break;
-            case 'sevenball':
-              // Multiply each existing ball by 7 - all go upward first
+            case 'multiball': {
+              // Double: keep main ball direction, add new ball going upward
               setBalls(prev => {
                 const newBalls: Ball[] = [];
                 prev.forEach(ball => {
                   const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
-                  // Create 7 balls spreading in a fan pattern upward
-                  for (let i = 0; i < 7; i++) {
-                    const spreadAngle = ((i - 3) / 3) * (Math.PI * 0.4); // Spread from -40 to +40 degrees
+                  // Keep original ball with its direction
+                  newBalls.push(ball);
+                  // Add new ball going upward
+                  newBalls.push({
+                    ...ball,
+                    id: generateId(),
+                    velocity: {
+                      dx: (Math.random() - 0.5) * speed * 0.4,
+                      dy: -Math.abs(speed),
+                    },
+                  });
+                });
+                return newBalls;
+              });
+              break;
+            }
+            case 'sevenball': {
+              // Keep main ball direction, add 6 new balls going upward
+              setBalls(prev => {
+                const newBalls: Ball[] = [];
+                prev.forEach(ball => {
+                  const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
+                  // Keep original ball with its direction
+                  newBalls.push(ball);
+                  // Add 6 new balls spreading in a fan pattern upward
+                  for (let i = 0; i < 6; i++) {
+                    const spreadAngle = ((i - 2.5) / 2.5) * (Math.PI * 0.35);
                     newBalls.push({
-                      id: i === 0 ? ball.id : generateId(),
+                      id: generateId(),
                       position: { ...ball.position },
                       velocity: {
                         dx: Math.sin(spreadAngle) * speed,
-                        dy: -Math.abs(Math.cos(spreadAngle) * speed), // Always upward
+                        dy: -Math.abs(Math.cos(spreadAngle) * speed),
                       },
                       radius: ball.radius,
                     });
@@ -715,17 +738,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 return newBalls;
               });
               break;
+            }
             case 'bigball':
-              // Make all balls bigger for 10 seconds
+              // Make all balls bigger and one-hit kill for 10 seconds
               setBalls(prev => prev.map(ball => ({
                 ...ball,
                 radius: BALL_RADIUS * 1.8,
               })));
+              setIsBigBall(true);
               setTimeout(() => {
                 setBalls(prev => prev.map(ball => ({
                   ...ball,
                   radius: BALL_RADIUS,
                 })));
+                setIsBigBall(false);
               }, 10000);
               break;
             case 'slow':
@@ -756,7 +782,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               break;
             case 'laser':
               setPaddle(prev => ({ ...prev, hasLaser: true }));
-              setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 10000);
+              setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 7000);
               break;
             case 'magnet':
               setPaddle(prev => ({ ...prev, hasMagnet: true }));
@@ -844,7 +870,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }))
         .filter(particle => particle.life > 0);
     });
-  }, [paddle, balls, bricks, gameState.score, ballSpeed, isFireball, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState]);
+  }, [paddle, balls, bricks, gameState.score, ballSpeed, isFireball, isBigBall, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState]);
 
   useGameLoop(gameLoop, gameState.status === 'playing');
 
@@ -988,26 +1014,41 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         const startX = ball.position.x;
         const startY = ball.position.y;
         const lineLength = 150;
+        const angle = aimAngleRef.current;
+        const endX = startX + Math.cos(angle) * lineLength;
+        const endY = startY + Math.sin(angle) * lineLength;
         
-        // Draw aiming line pointing upward
+        // Draw dotted aiming line in aim direction
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 6]);
-        ctx.lineDashOffset = -gameTime * 30; // Animate the dash
         
-        ctx.beginPath();
-        ctx.moveTo(startX, startY - ball.radius);
-        ctx.lineTo(startX, startY - ball.radius - lineLength);
-        ctx.stroke();
+        // Draw dots along the line
+        const dotSpacing = 12;
+        const numDots = Math.floor(lineLength / dotSpacing);
+        const startOffsetX = Math.cos(angle) * ball.radius;
+        const startOffsetY = Math.sin(angle) * ball.radius;
         
-        // Draw arrow tip
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        for (let i = 0; i < numDots; i++) {
+          const t = (i + 1) / numDots;
+          const animOffset = ((gameTime * 3) % 1) * dotSpacing;
+          const dotX = startX + startOffsetX + Math.cos(angle) * (i * dotSpacing + animOffset);
+          const dotY = startY + startOffsetY + Math.sin(angle) * (i * dotSpacing + animOffset);
+          
+          // Fade dots further from ball
+          const alpha = 0.7 - t * 0.5;
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, 3 - t * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Draw arrow tip at the end
+        const tipX = startX + Math.cos(angle) * (lineLength + ball.radius);
+        const tipY = startY + Math.sin(angle) * (lineLength + ball.radius);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.beginPath();
-        ctx.moveTo(startX, startY - ball.radius - lineLength - 10);
-        ctx.lineTo(startX - 6, startY - ball.radius - lineLength);
-        ctx.lineTo(startX + 6, startY - ball.radius - lineLength);
+        ctx.moveTo(tipX + Math.cos(angle) * 8, tipY + Math.sin(angle) * 8);
+        ctx.lineTo(tipX + Math.cos(angle + 2.5) * 8, tipY + Math.sin(angle + 2.5) * 8);
+        ctx.lineTo(tipX + Math.cos(angle - 2.5) * 8, tipY + Math.sin(angle - 2.5) * 8);
         ctx.closePath();
         ctx.fill();
         
@@ -1017,7 +1058,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-      drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball);
+      drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
     });
 
     // Draw particles
@@ -1046,7 +1087,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     ctx.restore();
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, isFireball, screenShake, gameTime, combo]);
+  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, isFireball, isBigBall, screenShake, gameTime, combo]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
