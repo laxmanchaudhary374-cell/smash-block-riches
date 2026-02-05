@@ -253,6 +253,55 @@ const drawSteelBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
   ctx.stroke();
 };
 
+// Draw steel crack overlay when steel brick is damaged
+const drawSteelCracks = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void => {
+  const centerX = x + w / 2;
+  const centerY = y + h / 2;
+  
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  
+  // Main crack from center
+  ctx.beginPath();
+  ctx.moveTo(centerX - 2, centerY - 1);
+  ctx.lineTo(centerX - w * 0.35, centerY - h * 0.3);
+  ctx.lineTo(centerX - w * 0.45, centerY - h * 0.15);
+  ctx.stroke();
+  
+  // Branch crack
+  ctx.beginPath();
+  ctx.moveTo(centerX - w * 0.25, centerY - h * 0.2);
+  ctx.lineTo(centerX - w * 0.15, centerY + h * 0.25);
+  ctx.stroke();
+  
+  // Right side crack
+  ctx.beginPath();
+  ctx.moveTo(centerX + 3, centerY + 2);
+  ctx.lineTo(centerX + w * 0.3, centerY + h * 0.35);
+  ctx.lineTo(centerX + w * 0.4, centerY + h * 0.2);
+  ctx.stroke();
+  
+  // Secondary crack
+  ctx.beginPath();
+  ctx.moveTo(centerX + w * 0.2, centerY + h * 0.15);
+  ctx.lineTo(centerX + w * 0.35, centerY - h * 0.1);
+  ctx.stroke();
+  
+  // White highlight along cracks (to show depth)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(centerX - 1, centerY);
+  ctx.lineTo(centerX - w * 0.33, centerY - h * 0.28);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(centerX + 4, centerY + 3);
+  ctx.lineTo(centerX + w * 0.28, centerY + h * 0.33);
+  ctx.stroke();
+}
+
 // Draw metal brick with matte texture (original)
 const drawMetalBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
   const borderRadius = 4;
@@ -498,6 +547,11 @@ export const drawPremiumBrick = (
   if (type === 'indestructible' || type === 'steel') {
     // Use special steel brick for indestructible and steel types
     drawSteelBrick(ctx, x, y, width, height);
+    
+    // Draw cracks on steel bricks when damaged (hits < maxHits)
+    if (type === 'steel' && hits < maxHits && maxHits === 2) {
+      drawSteelCracks(ctx, x, y, width, height);
+    }
   } else {
     // Draw based on material type
     switch (material) {
@@ -525,7 +579,7 @@ export const drawPremiumBrick = (
   drawBrickTypeIndicator(ctx, brick, gameTime);
   
   // Damage cracks overlay
-  if (damageRatio < 0.7 && maxHits > 1) {
+  if (damageRatio < 0.7 && maxHits > 1 && type !== 'steel') {
     drawDamageCracks(ctx, brick, damageRatio);
   }
   

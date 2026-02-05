@@ -253,9 +253,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         const dy = y - ball.position.y;
         // Calculate angle from ball to touch point
         let angle = Math.atan2(dy, dx);
-        // Clamp angle to upper hemisphere (-170 to -10 degrees)
-        if (angle > -Math.PI * 0.05) angle = -Math.PI * 0.05;
-        if (angle < -Math.PI * 0.95) angle = -Math.PI * 0.95;
+        // Clamp angle to full upper hemisphere (90 degrees on each side = 180 degree range)
+        // -180 to 0 degrees (or -π to 0 radians) is the full upper half
+        if (angle > 0) angle = -0.01; // If pointing down, set to nearly horizontal right
+        if (angle < -Math.PI) angle = -Math.PI + 0.01; // If beyond left, clamp
         aimAngleRef.current = angle;
       }
     }
@@ -1013,16 +1014,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (ball) {
         const startX = ball.position.x;
         const startY = ball.position.y;
-        const lineLength = 150;
+        const lineLength = 200; // Bigger line
         const angle = aimAngleRef.current;
-        const endX = startX + Math.cos(angle) * lineLength;
-        const endY = startY + Math.sin(angle) * lineLength;
         
         // Draw dotted aiming line in aim direction
         ctx.save();
         
         // Draw dots along the line
-        const dotSpacing = 12;
+        const dotSpacing = 15;
         const numDots = Math.floor(lineLength / dotSpacing);
         const startOffsetX = Math.cos(angle) * ball.radius;
         const startOffsetY = Math.sin(angle) * ball.radius;
@@ -1034,21 +1033,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           const dotY = startY + startOffsetY + Math.sin(angle) * (i * dotSpacing + animOffset);
           
           // Fade dots further from ball
-          const alpha = 0.7 - t * 0.5;
+          const alpha = 0.9 - t * 0.6;
+          const dotSize = 4 - t * 2; // Bigger dots
           ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
           ctx.beginPath();
-          ctx.arc(dotX, dotY, 3 - t * 1.5, 0, Math.PI * 2);
+          ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
           ctx.fill();
         }
         
         // Draw arrow tip at the end
         const tipX = startX + Math.cos(angle) * (lineLength + ball.radius);
         const tipY = startY + Math.sin(angle) * (lineLength + ball.radius);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.beginPath();
-        ctx.moveTo(tipX + Math.cos(angle) * 8, tipY + Math.sin(angle) * 8);
-        ctx.lineTo(tipX + Math.cos(angle + 2.5) * 8, tipY + Math.sin(angle + 2.5) * 8);
-        ctx.lineTo(tipX + Math.cos(angle - 2.5) * 8, tipY + Math.sin(angle - 2.5) * 8);
+        ctx.moveTo(tipX + Math.cos(angle) * 10, tipY + Math.sin(angle) * 10);
+        ctx.lineTo(tipX + Math.cos(angle + 2.5) * 10, tipY + Math.sin(angle + 2.5) * 10);
+        ctx.lineTo(tipX + Math.cos(angle - 2.5) * 10, tipY + Math.sin(angle - 2.5) * 10);
         ctx.closePath();
         ctx.fill();
         

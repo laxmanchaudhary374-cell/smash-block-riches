@@ -38,8 +38,27 @@ class AudioManager {
       this.musicGain.gain.value = this._musicVolume;
 
       this.isInitialized = true;
+      
+      // Listen for visibility changes to pause/resume music
+      document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
     } catch (e) {
       console.warn('Web Audio API not supported:', e);
+    }
+  }
+  
+  // Handle app minimize/tab switch
+  private handleVisibilityChange(): void {
+    if (document.hidden) {
+      // App is minimized/hidden - pause music
+      if (this.backgroundMusic && this.isMusicPlaying) {
+        this.backgroundMusic.stop();
+        this.backgroundMusic = null;
+      }
+    } else {
+      // App is visible again - resume music if it was playing
+      if (this.isMusicPlaying && this._musicVolume > 0) {
+        this.playMusicFromBuffer();
+      }
     }
   }
 
@@ -347,12 +366,18 @@ class AudioManager {
     if (this.musicGain) {
       this.musicGain.gain.value = this._musicVolume;
     }
-    // Stop music completely when volume is 0
-    if (this._musicVolume === 0 && this.backgroundMusic) {
-      this.backgroundMusic.stop();
-      this.backgroundMusic = null;
-    } else if (this._musicVolume > 0 && this.isMusicPlaying && !this.backgroundMusic) {
-      // Restart music if volume goes back up
+    // Stop music completely when volume is 0 or very low
+    if (this._musicVolume <= 0.01) {
+      if (this.backgroundMusic) {
+        try {
+          this.backgroundMusic.stop();
+        } catch (e) {
+          // Ignore if already stopped
+        }
+        this.backgroundMusic = null;
+      }
+    } else if (this._musicVolume > 0.01 && this.isMusicPlaying && !this.backgroundMusic && !document.hidden) {
+      // Restart music if volume goes back up and app is visible
       this.playMusicFromBuffer();
     }
   }
