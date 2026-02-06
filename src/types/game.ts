@@ -78,7 +78,25 @@ export type PowerUpType =
   | 'magnet'      // Ball sticks to paddle
   | 'shield'      // Safety net at bottom for 10 seconds
   | 'shrink'      // Paddle shrinks (negative)
-  | 'speedup';    // Ball speeds up (negative)
+  | 'speedup'     // Ball speeds up (negative)
+  | 'autopaddle'  // Paddle moves automatically for 10 seconds
+  | 'shock';      // Chain lightning destroys nearby bricks
+
+export interface Plane {
+  id: string;
+  x: number;
+  y: number;
+  speed: number;
+  hasPowerUp: boolean;
+}
+
+export interface LevelCoin {
+  id: string;
+  x: number;
+  y: number;
+  collected: boolean;
+  value: number;
+}
 
 export interface Particle {
   id: string;

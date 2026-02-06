@@ -337,70 +337,170 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
 };
 
-// Draw magnet icon (horseshoe magnet shape)
+// Draw magnet icon (big U-shaped horseshoe magnet only)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const magnetSize = size * 0.45;
+  const magnetSize = size * 0.5;
   
   ctx.save();
-  ctx.translate(x, y);
+  ctx.translate(x, y + magnetSize * 0.15);
   
-  // U-shaped magnet body
-  const armWidth = magnetSize * 0.35;
-  const innerRadius = magnetSize * 0.4;
+  // U-shaped magnet body - simplified big horseshoe
+  const armWidth = magnetSize * 0.45;
+  const innerRadius = magnetSize * 0.35;
   const outerRadius = innerRadius + armWidth;
+  const armHeight = magnetSize * 0.5;
   
   // Draw the horseshoe (U shape)
   ctx.beginPath();
   // Left arm outer
-  ctx.moveTo(-outerRadius, -magnetSize * 0.6);
+  ctx.moveTo(-outerRadius, -armHeight);
   ctx.lineTo(-outerRadius, magnetSize * 0.1);
   // Bottom curve outer
   ctx.arc(0, magnetSize * 0.1, outerRadius, Math.PI, 0, false);
   // Right arm outer
-  ctx.lineTo(outerRadius, -magnetSize * 0.6);
+  ctx.lineTo(outerRadius, -armHeight);
   // Right arm inner
-  ctx.lineTo(innerRadius, -magnetSize * 0.6);
+  ctx.lineTo(innerRadius, -armHeight);
   ctx.lineTo(innerRadius, magnetSize * 0.1);
   // Bottom curve inner
   ctx.arc(0, magnetSize * 0.1, innerRadius, 0, Math.PI, true);
   // Left arm inner
-  ctx.lineTo(-innerRadius, -magnetSize * 0.6);
+  ctx.lineTo(-innerRadius, -armHeight);
   ctx.closePath();
   
-  // Gradient fill
+  // Gradient fill - classic red/blue magnet colors
   const magnetGrad = ctx.createLinearGradient(-outerRadius, 0, outerRadius, 0);
   magnetGrad.addColorStop(0, 'hsl(0, 85%, 55%)'); // Red
-  magnetGrad.addColorStop(0.4, 'hsl(0, 85%, 45%)');
-  magnetGrad.addColorStop(0.6, 'hsl(200, 85%, 45%)');
-  magnetGrad.addColorStop(1, 'hsl(200, 100%, 55%)'); // Blue
+  magnetGrad.addColorStop(0.45, 'hsl(0, 85%, 50%)');
+  magnetGrad.addColorStop(0.55, 'hsl(210, 85%, 50%)');
+  magnetGrad.addColorStop(1, 'hsl(210, 100%, 55%)'); // Blue
   ctx.fillStyle = magnetGrad;
   ctx.fill();
   
-  // Pole tips (red on left, blue on right)
-  ctx.fillStyle = 'hsl(0, 90%, 60%)';
-  ctx.fillRect(-outerRadius, -magnetSize * 0.6, armWidth, magnetSize * 0.15);
-  
-  ctx.fillStyle = 'hsl(200, 100%, 60%)';
-  ctx.fillRect(innerRadius, -magnetSize * 0.6, armWidth, magnetSize * 0.15);
-  
-  // Highlight on top
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.fillRect(-outerRadius + 1, -magnetSize * 0.58, armWidth - 2, magnetSize * 0.08);
-  ctx.fillRect(innerRadius + 1, -magnetSize * 0.58, armWidth - 2, magnetSize * 0.08);
-  
-  // Magnetic field lines
-  ctx.strokeStyle = 'rgba(255, 255, 100, 0.6)';
+  // Add subtle 3D effect
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
   ctx.lineWidth = 1;
-  ctx.setLineDash([2, 2]);
-  ctx.beginPath();
-  ctx.arc(0, -magnetSize * 0.3, magnetSize * 0.25, 0, Math.PI, true);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, -magnetSize * 0.3, magnetSize * 0.4, 0, Math.PI, true);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  
+  // Highlight on top edges
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.fillRect(-outerRadius + 2, -armHeight + 2, armWidth - 4, 4);
+  ctx.fillRect(innerRadius + 2, -armHeight + 2, armWidth - 4, 4);
   
   ctx.restore();
+};
+
+// Draw auto paddle icon (paddle with arrows/A)
+const drawAutoPaddleIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const paddleWidth = size * 0.6;
+  const paddleHeight = size * 0.2;
+  
+  // Green glow
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.5);
+  glowGrad.addColorStop(0, 'hsla(120, 100%, 60%, 0.4)');
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Paddle body (green)
+  const bodyGrad = ctx.createLinearGradient(x - paddleWidth/2, y, x - paddleWidth/2, y + paddleHeight);
+  bodyGrad.addColorStop(0, 'hsl(120, 70%, 55%)');
+  bodyGrad.addColorStop(0.5, 'hsl(120, 65%, 45%)');
+  bodyGrad.addColorStop(1, 'hsl(120, 60%, 35%)');
+  
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.roundRect(x - paddleWidth/2, y + size * 0.1, paddleWidth, paddleHeight, paddleHeight/2);
+  ctx.fill();
+  
+  // Movement arrows (left and right)
+  ctx.strokeStyle = 'hsl(120, 100%, 70%)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  
+  // Left arrow
+  ctx.beginPath();
+  ctx.moveTo(x - paddleWidth/2 - size * 0.08, y + size * 0.2);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.18, y + size * 0.2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - paddleWidth/2 - size * 0.18, y + size * 0.2);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.12, y + size * 0.12);
+  ctx.lineTo(x - paddleWidth/2 - size * 0.12, y + size * 0.28);
+  ctx.closePath();
+  ctx.fillStyle = 'hsl(120, 100%, 70%)';
+  ctx.fill();
+  
+  // Right arrow
+  ctx.beginPath();
+  ctx.moveTo(x + paddleWidth/2 + size * 0.08, y + size * 0.2);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.18, y + size * 0.2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + paddleWidth/2 + size * 0.18, y + size * 0.2);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.12, y + size * 0.12);
+  ctx.lineTo(x + paddleWidth/2 + size * 0.12, y + size * 0.28);
+  ctx.closePath();
+  ctx.fill();
+  
+  // "A" letter in center
+  ctx.fillStyle = 'white';
+  ctx.font = `bold ${size * 0.25}px Orbitron`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('A', x, y - size * 0.15);
+};
+
+// Draw shock/lightning icon (Z-shaped electric bolt)
+const drawShockIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  // Electric glow
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.6);
+  glowGrad.addColorStop(0, 'hsla(55, 100%, 70%, 0.5)');
+  glowGrad.addColorStop(0.5, 'hsla(50, 100%, 55%, 0.3)');
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Lightning bolt Z shape
+  const boltGrad = ctx.createLinearGradient(x, y - size * 0.4, x, y + size * 0.4);
+  boltGrad.addColorStop(0, 'hsl(55, 100%, 85%)');
+  boltGrad.addColorStop(0.3, 'hsl(50, 100%, 60%)');
+  boltGrad.addColorStop(0.7, 'hsl(45, 100%, 50%)');
+  boltGrad.addColorStop(1, 'hsl(40, 100%, 45%)');
+  
+  ctx.fillStyle = boltGrad;
+  ctx.beginPath();
+  // Z-shaped bolt
+  ctx.moveTo(x + size * 0.2, y - size * 0.4);
+  ctx.lineTo(x - size * 0.15, y - size * 0.4);
+  ctx.lineTo(x + size * 0.05, y - size * 0.05);
+  ctx.lineTo(x - size * 0.2, y - size * 0.05);
+  ctx.lineTo(x + size * 0.05, y + size * 0.4);
+  ctx.lineTo(x + size * 0.15, y + size * 0.4);
+  ctx.lineTo(x - size * 0.05, y + size * 0.05);
+  ctx.lineTo(x + size * 0.2, y + size * 0.05);
+  ctx.closePath();
+  ctx.fill();
+  
+  // White core highlight
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Electric sparks around
+  ctx.fillStyle = 'hsl(55, 100%, 75%)';
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const sparkX = x + Math.cos(angle) * size * 0.35;
+    const sparkY = y + Math.sin(angle) * size * 0.35;
+    ctx.beginPath();
+    ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 };
 
 // Draw laser paddle (paddle with laser beams)
@@ -743,6 +843,12 @@ const drawPowerUpIcon = (
     case 'speedup':
       drawSpeedupIcon(ctx, x, y, size);
       break;
+    case 'autopaddle':
+      drawAutoPaddleIcon(ctx, x, y, size);
+      break;
+    case 'shock':
+      drawShockIcon(ctx, x, y, size);
+      break;
   }
 };
 
@@ -760,6 +866,8 @@ const getPowerUpColors = (type: PowerUpType): { bgColor: string; glowColor: stri
     magnet: { bgColor: 'hsl(280, 60%, 45%)', glowColor: 'hsla(280, 80%, 55%, 0.7)', isNegative: false },
     shield: { bgColor: 'hsl(200, 80%, 45%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
     speedup: { bgColor: 'hsl(35, 45%, 30%)', glowColor: 'hsla(35, 70%, 45%, 0.5)', isNegative: true },
+    autopaddle: { bgColor: 'hsl(120, 65%, 40%)', glowColor: 'hsla(120, 80%, 55%, 0.7)', isNegative: false },
+    shock: { bgColor: 'hsl(55, 90%, 45%)', glowColor: 'hsla(60, 100%, 60%, 0.7)', isNegative: false },
   };
   return configs[type];
 };
