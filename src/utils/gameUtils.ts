@@ -104,8 +104,8 @@ export const shouldDropPowerUp = (): boolean => {
 };
 
 export const getRandomPowerUpType = (): PowerUpType => {
-  const types: PowerUpType[] = ['widen', 'multiball', 'sevenball', 'bigball', 'slow', 'extralife', 'fireball', 'laser', 'magnet', 'shield', 'shrink', 'speedup'];
-  const weights = [0.14, 0.12, 0.06, 0.08, 0.10, 0.08, 0.10, 0.08, 0.07, 0.07, 0.05, 0.05];
+  const types: PowerUpType[] = ['widen', 'multiball', 'sevenball', 'bigball', 'slow', 'extralife', 'fireball', 'laser', 'magnet', 'shield', 'shrink', 'speedup', 'autopaddle', 'shock'];
+  const weights = [0.12, 0.10, 0.05, 0.07, 0.09, 0.07, 0.09, 0.07, 0.06, 0.06, 0.04, 0.04, 0.07, 0.07];
   
   const random = Math.random();
   let cumulative = 0;
@@ -147,6 +147,8 @@ export const getPowerUpColor = (type: PowerUpType): string => {
     shield: 'hsl(200, 100%, 60%)',
     shrink: 'hsl(0, 60%, 40%)',
     speedup: 'hsl(30, 60%, 40%)',
+    autopaddle: 'hsl(120, 80%, 50%)',
+    shock: 'hsl(60, 100%, 50%)',
   };
   return colors[type];
 };
@@ -161,10 +163,12 @@ export const getPowerUpLabel = (type: PowerUpType): string => {
     extralife: '+1',
     fireball: 'F',
     laser: 'L',
-    magnet: '◎',
+    magnet: 'U',
     shield: '⬡',
     shrink: '←→',
     speedup: '↑',
+    autopaddle: 'A',
+    shock: 'Z',
   };
   return labels[type];
 };

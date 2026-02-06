@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { Ball, Brick, Paddle, PowerUp, Particle, GameState, Laser, Coin, Explosion } from '@/types/game';
+import { Ball, Brick, Paddle, PowerUp, Particle, GameState, Laser, Coin, Explosion, Plane, LevelCoin } from '@/types/game';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { levels } from '@/utils/levels/index';
 import {
@@ -66,22 +66,39 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [lasers, setLasers] = useState<Laser[]>([]);
   const [coins, setCoins] = useState<Coin[]>([]);
   const [explosions, setExplosions] = useState<Explosion[]>([]);
+  const [levelCoins, setLevelCoins] = useState<LevelCoin[]>([]);
+  const [plane, setPlane] = useState<Plane | null>(null);
   const [ballSpeed, setBallSpeed] = useState(300);
   const [isFireball, setIsFireball] = useState(false);
+  const [isShock, setIsShock] = useState(false);
+  const [isAutoPaddle, setIsAutoPaddle] = useState(false);
   const [screenShake, setScreenShake] = useState(0);
   const [gameTime, setGameTime] = useState(0);
   const [combo, setCombo] = useState(0);
   const [comboTimer, setComboTimer] = useState(0);
   const [isBigBall, setIsBigBall] = useState(false);
+  const [lastPowerUpTime, setLastPowerUpTime] = useState(0);
   
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
   const aimAngleRef = useRef<number>(-Math.PI / 2); // Start pointing up (-90 degrees)
 
-  // Initialize level - also reinitialize when level changes
+  // Track previous level to only reinitialize on level change
+  const prevLevelRef = useRef<number | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+
+  // Initialize level - only reinitialize when level actually changes (not on pause/resume)
   useEffect(() => {
-    if (gameState.status === 'playing') {
+    const levelChanged = prevLevelRef.current !== gameState.level;
+    const justStartedPlaying = prevStatusRef.current !== 'playing' && gameState.status === 'playing' && 
+                               prevStatusRef.current !== 'paused'; // Don't reinit when unpausing
+    
+    prevLevelRef.current = gameState.level;
+    prevStatusRef.current = gameState.status;
+    
+    // Only initialize if level changed or we're starting fresh (not resuming from pause)
+    if (gameState.status === 'playing' && (levelChanged || justStartedPlaying)) {
       const levelIndex = Math.min(gameState.level - 1, levels.length - 1);
       const level = levels[levelIndex];
       
@@ -99,10 +116,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       setLasers([]);
       setCoins([]);
       setExplosions([]);
+      setPlane(null);
       setIsFireball(false);
       setIsBigBall(false);
+      setIsShock(false);
+      setIsAutoPaddle(false);
       setCombo(0);
       setComboTimer(0);
+      setLastPowerUpTime(0);
       setPaddle(prev => ({ 
         ...prev, 
         width: PADDLE_WIDTH,
@@ -110,6 +131,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         hasMagnet: false,
         hasShield: false,
       }));
+      
+      // Generate level coins (3-5 coins per level based on difficulty)
+      const numCoins = 3 + Math.floor(gameState.level / 50);
+      const newLevelCoins: LevelCoin[] = [];
+      for (let i = 0; i < numCoins; i++) {
+        newLevelCoins.push({
+          id: generateId(),
+          x: 50 + Math.random() * (GAME_WIDTH - 100),
+          y: 100 + Math.random() * 200,
+          collected: false,
+          value: 10 + Math.floor(gameState.level / 10) * 5,
+        });
+      }
+      setLevelCoins(newLevelCoins);
       
       // Create initial ball
       setBalls([{
@@ -131,6 +166,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       setLasers([]);
       setCoins([]);
       setExplosions([]);
+      setLevelCoins([]);
+      setPlane(null);
       magnetBallRef.current = null;
       aimAngleRef.current = -Math.PI / 2;
     }
@@ -224,6 +261,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (shouldDropPowerUp() && brick.type !== 'coin') {
       const powerUp = createPowerUp(brick.x + brick.width / 2, brick.y + brick.height);
       setPowerUps(prev => [...prev, powerUp]);
+      setLastPowerUpTime(gameTime);
     }
     
     // Update combo
@@ -231,9 +269,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     setComboTimer(2); // 2 seconds to maintain combo
     
     return addScore ? scoreValue : 0;
-  }, [combo, createParticles, handleExplosion]);
+  }, [combo, createParticles, handleExplosion, gameTime]);
 
-  // Handle paddle movement and aim direction
+  // Handle paddle movement and aim direction (only updates target, not actual position when auto-paddle)
   const handlePointerMove = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -243,9 +281,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const scaleY = GAME_HEIGHT / rect.height;
     const x = (clientX - rect.left) * scaleX;
     const y = (clientY - rect.top) * scaleY;
-    paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
     
-    // Update aim angle if ball is on paddle
+    // Only update paddle target if not in auto-paddle mode
+    if (!isAutoPaddle) {
+      paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
+    }
+    
+    // Update aim angle if ball is on paddle - allow full 180-degree range
     if (magnetBallRef.current) {
       const ball = balls.find(b => b.id === magnetBallRef.current?.id);
       if (ball) {
@@ -260,7 +302,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         aimAngleRef.current = angle;
       }
     }
-  }, [paddle.width, balls]);
+  }, [paddle.width, balls, isAutoPaddle]);
 
   // Fire laser
   const fireLaser = useCallback(() => {
@@ -389,6 +431,49 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update screen shake
     setScreenShake(prev => Math.max(0, prev - deltaTime * 20));
 
+    // Spawn plane if no power-up dropped for 90 seconds (1.5 minutes)
+    if (gameTime - lastPowerUpTime > 90 && !plane) {
+      setPlane({
+        id: generateId(),
+        x: -60,
+        y: 35,
+        speed: 100,
+        hasPowerUp: true,
+      });
+      setLastPowerUpTime(gameTime);
+    }
+
+    // Update plane
+    if (plane) {
+      const newX = plane.x + plane.speed * deltaTime;
+      
+      // Drop power-up when plane reaches middle
+      if (plane.hasPowerUp && newX >= GAME_WIDTH / 2) {
+        const powerUp = createPowerUp(newX, plane.y + 20);
+        setPowerUps(prev => [...prev, powerUp]);
+        setPlane(prev => prev ? { ...prev, hasPowerUp: false } : null);
+      }
+      
+      // Remove plane when it exits
+      if (newX > GAME_WIDTH + 60) {
+        setPlane(null);
+      } else {
+        setPlane(prev => prev ? { ...prev, x: newX } : null);
+      }
+    }
+
+    // Auto-paddle logic - follow the closest ball
+    if (isAutoPaddle) {
+      const activeBalls = balls.filter(b => b.velocity.dy !== 0 || b.velocity.dx !== 0);
+      if (activeBalls.length > 0) {
+        // Find the lowest ball (closest to paddle)
+        const lowestBall = activeBalls.reduce((lowest, ball) => 
+          ball.position.y > lowest.position.y ? ball : lowest
+        );
+        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, lowestBall.position.x - paddle.width / 2));
+      }
+    }
+
     // Smooth paddle movement
     setPaddle(prev => {
       const diff = paddleTargetRef.current - prev.x;
@@ -401,24 +486,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Update balls
     setBalls(prevBalls => {
-      // Handle magnet ball
-      if (magnetBallRef.current) {
-        const magnetBall = prevBalls.find(b => b.id === magnetBallRef.current?.id);
-        if (magnetBall) {
-          return prevBalls.map(ball => {
-            if (ball.id === magnetBall.id) {
-              return {
-                ...ball,
-                position: { x: paddle.x + paddle.width / 2, y: paddle.y - ball.radius - 1 },
-                velocity: { dx: 0, dy: 0 },
-              };
-            }
-            return ball;
-          });
-        }
-      }
-
       const newBalls = prevBalls.map(ball => {
+        // If this ball is magnetized, keep it stuck to paddle
+        if (magnetBallRef.current && ball.id === magnetBallRef.current.id) {
+          return {
+            ...ball,
+            position: { x: paddle.x + paddle.width / 2, y: paddle.y - ball.radius - 1 },
+            velocity: { dx: 0, dy: 0 },
+          };
+        }
+        
+        // Otherwise, move the ball normally
         let { x, y } = ball.position;
         let { dx, dy } = ball.velocity;
 
@@ -592,6 +670,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 });
               }
               
+              // Handle shock power-up - destroy nearby bricks
+              if (isShock) {
+                const shockRadius = 80;
+                prevBricks.forEach(nearbyBrick => {
+                  if (nearbyBrick.id !== brick.id && !nearbyBrick.destroyed && nearbyBrick.type !== 'indestructible') {
+                    const dx = nearbyBrick.x + nearbyBrick.width / 2 - (brick.x + brick.width / 2);
+                    const dy = nearbyBrick.y + nearbyBrick.height / 2 - (brick.y + brick.height / 2);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < shockRadius) {
+                      nearbyBrick.destroyed = true;
+                      nearbyBrick.hits = 0;
+                      const shockScore = destroyBrick(nearbyBrick);
+                      if (shockScore) scoreToAdd += shockScore;
+                      // Create lightning effect
+                      createParticles(nearbyBrick.x + nearbyBrick.width / 2, nearbyBrick.y + nearbyBrick.height / 2, 'hsl(55, 100%, 60%)', 8);
+                    }
+                  }
+                });
+              }
+              
               return { ...brick, hits: 0, destroyed: true };
             }
             
@@ -624,6 +722,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         });
       });
+
+    // Check ball-level coin collisions
+    setLevelCoins(prevCoins => {
+      return prevCoins.map(coin => {
+        if (coin.collected) return coin;
+        
+        for (const ball of balls) {
+          const dx = ball.position.x - coin.x;
+          const dy = ball.position.y - coin.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < ball.radius + 12) {
+            // Collect the coin
+            setGameState(prev => ({ ...prev, coins: prev.coins + coin.value }));
+            createParticles(coin.x, coin.y, 'hsl(45, 100%, 55%)', 10);
+            audioManager.playCoinCollect();
+            return { ...coin, collected: true };
+          }
+        }
+        return coin;
+      });
+    });
 
       if (scoreToAdd > 0) {
         onScoreChange(gameState.score + Math.round(scoreToAdd));
@@ -800,6 +920,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 setPaddle(prev => ({ ...prev, hasShield: false }));
               }, 10000);
               break;
+            case 'autopaddle':
+              setIsAutoPaddle(true);
+              setTimeout(() => setIsAutoPaddle(false), 10000);
+              break;
+            case 'shock':
+              setIsShock(true);
+              setTimeout(() => setIsShock(false), 10000);
+              break;
           }
           
           const color = getPowerUpColor(powerUp.type);
@@ -871,7 +999,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }))
         .filter(particle => particle.life > 0);
     });
-  }, [paddle, balls, bricks, gameState.score, ballSpeed, isFireball, isBigBall, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState]);
+  }, [paddle, balls, bricks, gameState.score, ballSpeed, isFireball, isBigBall, isShock, isAutoPaddle, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, plane, lastPowerUpTime, gameTime, levelCoins]);
 
   useGameLoop(gameLoop, gameState.status === 'playing');
 
@@ -931,6 +1059,81 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
+
+    // Draw plane if present
+    if (plane) {
+      ctx.save();
+      ctx.translate(plane.x, plane.y);
+      
+      // Plane body
+      ctx.fillStyle = 'hsl(220, 40%, 50%)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 30, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Cockpit
+      ctx.fillStyle = 'hsl(200, 100%, 70%)';
+      ctx.beginPath();
+      ctx.ellipse(15, -2, 8, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Wings
+      ctx.fillStyle = 'hsl(220, 35%, 45%)';
+      ctx.beginPath();
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(-5, -18);
+      ctx.lineTo(5, -18);
+      ctx.lineTo(10, 0);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(-25, 0);
+      ctx.lineTo(-30, -10);
+      ctx.lineTo(-20, -10);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Power-up indicator
+      if (plane.hasPowerUp) {
+        ctx.fillStyle = 'hsl(50, 100%, 60%)';
+        ctx.beginPath();
+        ctx.arc(0, 12, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    }
+
+    // Draw level coins (static coins in level)
+    levelCoins.forEach(coin => {
+      if (coin.collected) return;
+      
+      const pulse = 1 + Math.sin(gameTime * 4) * 0.1;
+      
+      ctx.fillStyle = 'hsl(45, 100%, 55%)';
+      ctx.shadowColor = 'hsl(45, 100%, 55%)';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(coin.x, coin.y, 10 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner ring
+      ctx.strokeStyle = 'hsl(35, 100%, 40%)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(coin.x, coin.y, 6 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Dollar sign
+      ctx.fillStyle = 'hsl(35, 100%, 35%)';
+      ctx.font = 'bold 10px Rajdhani';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', coin.x, coin.y);
+      ctx.shadowBlur = 0;
+    });
 
     // Draw explosions
     explosions.forEach(explosion => {
@@ -1087,7 +1290,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     ctx.restore();
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, isFireball, isBigBall, screenShake, gameTime, combo]);
+  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, isFireball, isBigBall, isShock, isAutoPaddle, screenShake, gameTime, combo]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {

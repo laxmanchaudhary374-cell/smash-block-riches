@@ -854,11 +854,11 @@ export const drawPremiumBall = (
       outerGrad.addColorStop(0.6, 'hsl(20, 100%, 50%)');
       outerGrad.addColorStop(1, 'hsla(0, 100%, 40%, 0)');
     } else {
-      // Big ball - purple/blue power glow
-      outerGrad.addColorStop(0, 'hsl(280, 100%, 90%)');
-      outerGrad.addColorStop(0.3, 'hsl(270, 100%, 65%)');
-      outerGrad.addColorStop(0.6, 'hsl(260, 100%, 50%)');
-      outerGrad.addColorStop(1, 'hsla(250, 100%, 40%, 0)');
+      // Big ball - steel/silver power glow (matching steel ball colors)
+      outerGrad.addColorStop(0, 'hsl(210, 20%, 95%)');
+      outerGrad.addColorStop(0.3, 'hsl(215, 15%, 75%)');
+      outerGrad.addColorStop(0.6, 'hsl(220, 15%, 55%)');
+      outerGrad.addColorStop(1, 'hsla(225, 15%, 40%, 0)');
     }
     
     ctx.fillStyle = outerGrad;
@@ -873,10 +873,10 @@ export const drawPremiumBall = (
       coreGrad.addColorStop(0.4, 'hsl(40, 100%, 70%)');
       coreGrad.addColorStop(1, 'hsl(25, 100%, 55%)');
     } else {
-      // Big ball core
-      coreGrad.addColorStop(0, 'hsl(280, 100%, 95%)');
-      coreGrad.addColorStop(0.4, 'hsl(275, 100%, 75%)');
-      coreGrad.addColorStop(1, 'hsl(265, 100%, 60%)');
+      // Big ball core - steel/chrome
+      coreGrad.addColorStop(0, 'hsl(210, 15%, 95%)');
+      coreGrad.addColorStop(0.4, 'hsl(215, 12%, 70%)');
+      coreGrad.addColorStop(1, 'hsl(220, 15%, 50%)');
     }
     
     ctx.fillStyle = coreGrad;

@@ -619,8 +619,8 @@ const generateBarsPattern = (level: number, params: ReturnType<typeof getDifficu
 
 // Get pattern type for level
 const getPatternType = (level: number): PatternType => {
-  // Boss levels every 25 levels
-  if (level % 25 === 0) return 'boss';
+  // Boss levels every 20 levels
+  if (level % 20 === 0) return 'boss';
   
   const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star', 'arrow', 'circle', 'spiral', 'random', 'spaceship', 'robot', 'castle', 'bars'];
   return patterns[(level + Math.floor(level / 10)) % patterns.length];
