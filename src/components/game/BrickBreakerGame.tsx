@@ -264,10 +264,32 @@ const BrickBreakerGame: React.FC = () => {
 
         {/* Overlays */}
         {screenState === 'paused' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg">
-            <div className="text-center">
-              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-4">PAUSED</h2>
-              <p className="font-game text-sm text-muted-foreground">Tap the play button to resume</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg">
+            <div className="text-center p-6">
+              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleTogglePause}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  RESUME
+                </button>
+                
+                <button
+                  onClick={handleReplayLevel}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  RETRY
+                </button>
+                
+                <button
+                  onClick={handleMainMenu}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  MAIN MENU
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -839,27 +839,17 @@ export const drawPremiumBall = (
 ): void => {
   ctx.save();
   
-  if (isFireball || isBigBall) {
-    // Fireball or BigBall effect - glowing powerful ball
-    const hue = isFireball ? 35 : 280; // Orange for fire, purple for big ball
-    const glowColor = isFireball ? 'rgba(255, 100, 0, 0.8)' : 'rgba(150, 50, 255, 0.8)';
-    ctx.shadowColor = glowColor;
+  if (isFireball) {
+    // Fireball effect - glowing powerful orange/fire ball
+    ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
     ctx.shadowBlur = 15;
     
     // Fire trail effect
     const outerGrad = ctx.createRadialGradient(x + radius * 0.3, y + radius * 0.3, 0, x, y, radius * 1.5);
-    if (isFireball) {
-      outerGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
-      outerGrad.addColorStop(0.3, 'hsl(35, 100%, 60%)');
-      outerGrad.addColorStop(0.6, 'hsl(20, 100%, 50%)');
-      outerGrad.addColorStop(1, 'hsla(0, 100%, 40%, 0)');
-    } else {
-      // Big ball - steel/silver power glow (matching steel ball colors)
-      outerGrad.addColorStop(0, 'hsl(210, 20%, 95%)');
-      outerGrad.addColorStop(0.3, 'hsl(215, 15%, 75%)');
-      outerGrad.addColorStop(0.6, 'hsl(220, 15%, 55%)');
-      outerGrad.addColorStop(1, 'hsla(225, 15%, 40%, 0)');
-    }
+    outerGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
+    outerGrad.addColorStop(0.3, 'hsl(35, 100%, 60%)');
+    outerGrad.addColorStop(0.6, 'hsl(20, 100%, 50%)');
+    outerGrad.addColorStop(1, 'hsla(0, 100%, 40%, 0)');
     
     ctx.fillStyle = outerGrad;
     ctx.beginPath();
@@ -868,21 +858,97 @@ export const drawPremiumBall = (
     
     // Inner bright core
     const coreGrad = ctx.createRadialGradient(x - radius * 0.2, y - radius * 0.2, 0, x, y, radius);
-    if (isFireball) {
-      coreGrad.addColorStop(0, 'hsl(50, 100%, 95%)');
-      coreGrad.addColorStop(0.4, 'hsl(40, 100%, 70%)');
-      coreGrad.addColorStop(1, 'hsl(25, 100%, 55%)');
-    } else {
-      // Big ball core - steel/chrome
-      coreGrad.addColorStop(0, 'hsl(210, 15%, 95%)');
-      coreGrad.addColorStop(0.4, 'hsl(215, 12%, 70%)');
-      coreGrad.addColorStop(1, 'hsl(220, 15%, 50%)');
-    }
+    coreGrad.addColorStop(0, 'hsl(50, 100%, 95%)');
+    coreGrad.addColorStop(0.4, 'hsl(40, 100%, 70%)');
+    coreGrad.addColorStop(1, 'hsl(25, 100%, 55%)');
     
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
+
+  } else if (isBigBall) {
+    // Big ball - pure HD steel/chrome appearance (same as normal ball but bigger with stronger glow)
+    ctx.shadowColor = 'rgba(150, 180, 220, 0.6)';
+    ctx.shadowBlur = 20;
+    
+    // Drop shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.arc(x + 3, y + 3, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Main metallic gradient (steel gray - HD quality)
+    const steelGrad = ctx.createRadialGradient(
+      x - radius * 0.4, y - radius * 0.4, 0,
+      x, y, radius
+    );
+    steelGrad.addColorStop(0, 'hsl(210, 20%, 98%)');   // Very bright highlight
+    steelGrad.addColorStop(0.1, 'hsl(210, 15%, 90%)'); // Light steel
+    steelGrad.addColorStop(0.3, 'hsl(215, 12%, 70%)'); // Mid light steel
+    steelGrad.addColorStop(0.5, 'hsl(218, 14%, 55%)'); // Mid steel
+    steelGrad.addColorStop(0.7, 'hsl(220, 16%, 42%)'); // Dark steel
+    steelGrad.addColorStop(1, 'hsl(225, 22%, 28%)');   // Edge shadow
+    
+    ctx.fillStyle = steelGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.shadowBlur = 0;
+    
+    // Chrome reflection band (horizontal highlight)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+    
+    const reflectGrad = ctx.createLinearGradient(x - radius, y - radius * 0.3, x + radius, y - radius * 0.1);
+    reflectGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    reflectGrad.addColorStop(0.2, 'rgba(255, 255, 255, 0.5)');
+    reflectGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.75)');
+    reflectGrad.addColorStop(0.6, 'rgba(255, 255, 255, 0.75)');
+    reflectGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0.5)');
+    reflectGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = reflectGrad;
+    ctx.fillRect(x - radius, y - radius * 0.5, radius * 2, radius * 0.55);
+    ctx.restore();
+    
+    // Main highlight (top-left bright spot)
+    const highlightGrad = ctx.createRadialGradient(
+      x - radius * 0.35, y - radius * 0.35, 0,
+      x - radius * 0.35, y - radius * 0.35, radius * 0.5
+    );
+    highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    highlightGrad.addColorStop(0.25, 'rgba(255, 255, 255, 0.8)');
+    highlightGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+    highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = highlightGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Secondary small highlight (adds depth)
+    const secondaryHighlight = ctx.createRadialGradient(
+      x + radius * 0.3, y + radius * 0.4, 0,
+      x + radius * 0.3, y + radius * 0.4, radius * 0.3
+    );
+    secondaryHighlight.addColorStop(0, 'rgba(200, 215, 230, 0.5)');
+    secondaryHighlight.addColorStop(1, 'rgba(200, 215, 230, 0)');
+    
+    ctx.fillStyle = secondaryHighlight;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Chrome rim highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, radius - 1, -Math.PI * 0.85, -Math.PI * 0.15);
+    ctx.stroke();
 
   } else {
     // Shiny steel/chrome ball
