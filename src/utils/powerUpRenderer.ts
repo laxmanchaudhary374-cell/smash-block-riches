@@ -130,54 +130,62 @@ const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   });
 };
 
-// Draw big ball icon (large ball with glow)
+// Draw big ball icon (large steel ball - pure HD steel look)
 const drawBigballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const ballRadius = size * 0.4;
   
   // Outer glow
   const glowGrad = ctx.createRadialGradient(x, y, ballRadius * 0.5, x, y, ballRadius * 1.3);
-  glowGrad.addColorStop(0, 'hsla(45, 100%, 60%, 0.4)');
+  glowGrad.addColorStop(0, 'hsla(210, 30%, 70%, 0.5)');
   glowGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
   ctx.arc(x, y, ballRadius * 1.3, 0, Math.PI * 2);
   ctx.fill();
   
-  // Main ball
+  // Main steel ball with chrome gradient
   const ballGrad = ctx.createRadialGradient(x - ballRadius * 0.3, y - ballRadius * 0.3, 0, x, y, ballRadius);
-  ballGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
-  ballGrad.addColorStop(0.3, 'hsl(45, 100%, 70%)');
-  ballGrad.addColorStop(0.7, 'hsl(40, 100%, 55%)');
-  ballGrad.addColorStop(1, 'hsl(35, 100%, 40%)');
+  ballGrad.addColorStop(0, 'hsl(210, 15%, 95%)');   // Bright highlight
+  ballGrad.addColorStop(0.15, 'hsl(210, 10%, 80%)'); // Light steel
+  ballGrad.addColorStop(0.4, 'hsl(215, 12%, 60%)');  // Mid steel
+  ballGrad.addColorStop(0.7, 'hsl(220, 15%, 45%)');  // Dark steel
+  ballGrad.addColorStop(1, 'hsl(225, 20%, 30%)');    // Edge shadow
+  
   ctx.fillStyle = ballGrad;
   ctx.beginPath();
   ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
   ctx.fill();
   
-  // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  // Chrome reflection band
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(x - ballRadius * 0.25, y - ballRadius * 0.25, ballRadius * 0.2, 0, Math.PI * 2);
+  ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+  ctx.clip();
+  
+  const reflectGrad = ctx.createLinearGradient(x - ballRadius, y - ballRadius * 0.3, x + ballRadius, y - ballRadius * 0.1);
+  reflectGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  reflectGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.5)');
+  reflectGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.7)');
+  reflectGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.5)');
+  reflectGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  
+  ctx.fillStyle = reflectGrad;
+  ctx.fillRect(x - ballRadius, y - ballRadius * 0.5, ballRadius * 2, ballRadius * 0.6);
+  ctx.restore();
+  
+  // Main highlight (top-left bright spot)
+  const highlightGrad = ctx.createRadialGradient(
+    x - ballRadius * 0.3, y - ballRadius * 0.3, 0,
+    x - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.35
+  );
+  highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  highlightGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.5)');
+  highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  
+  ctx.fillStyle = highlightGrad;
+  ctx.beginPath();
+  ctx.arc(x - ballRadius * 0.25, y - ballRadius * 0.25, ballRadius * 0.35, 0, Math.PI * 2);
   ctx.fill();
-  
-  // Size arrows pointing outward
-  ctx.strokeStyle = 'hsl(35, 100%, 30%)';
-  ctx.lineWidth = 1.5;
-  ctx.lineCap = 'round';
-  const arrowDist = ballRadius * 0.6;
-  
-  // Draw outward arrows
-  [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach(angle => {
-    const startX = x + Math.cos(angle) * arrowDist * 0.5;
-    const startY = y + Math.sin(angle) * arrowDist * 0.5;
-    const endX = x + Math.cos(angle) * arrowDist;
-    const endY = y + Math.sin(angle) * arrowDist;
-    
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-  });
 };
 
 // Draw slow/arrow down icon (arrow pointing down for speed decrease)
@@ -337,33 +345,33 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
 };
 
-// Draw magnet icon (big U-shaped horseshoe magnet only)
+// Draw magnet icon (big U-shaped horseshoe magnet only - no box)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const magnetSize = size * 0.5;
+  const magnetSize = size * 0.45;
   
   ctx.save();
-  ctx.translate(x, y + magnetSize * 0.15);
+  ctx.translate(x, y + magnetSize * 0.1);
   
-  // U-shaped magnet body - simplified big horseshoe
-  const armWidth = magnetSize * 0.45;
-  const innerRadius = magnetSize * 0.35;
+  // U-shaped magnet body - big horseshoe, no box
+  const armWidth = magnetSize * 0.5;
+  const innerRadius = magnetSize * 0.3;
   const outerRadius = innerRadius + armWidth;
-  const armHeight = magnetSize * 0.5;
+  const armHeight = magnetSize * 0.6;
   
   // Draw the horseshoe (U shape)
   ctx.beginPath();
   // Left arm outer
   ctx.moveTo(-outerRadius, -armHeight);
-  ctx.lineTo(-outerRadius, magnetSize * 0.1);
+  ctx.lineTo(-outerRadius, magnetSize * 0.15);
   // Bottom curve outer
-  ctx.arc(0, magnetSize * 0.1, outerRadius, Math.PI, 0, false);
+  ctx.arc(0, magnetSize * 0.15, outerRadius, Math.PI, 0, false);
   // Right arm outer
   ctx.lineTo(outerRadius, -armHeight);
   // Right arm inner
   ctx.lineTo(innerRadius, -armHeight);
-  ctx.lineTo(innerRadius, magnetSize * 0.1);
+  ctx.lineTo(innerRadius, magnetSize * 0.15);
   // Bottom curve inner
-  ctx.arc(0, magnetSize * 0.1, innerRadius, 0, Math.PI, true);
+  ctx.arc(0, magnetSize * 0.15, innerRadius, 0, Math.PI, true);
   // Left arm inner
   ctx.lineTo(-innerRadius, -armHeight);
   ctx.closePath();
@@ -378,79 +386,67 @@ const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
   
   // Add subtle 3D effect
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   
   // Highlight on top edges
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.fillRect(-outerRadius + 2, -armHeight + 2, armWidth - 4, 4);
-  ctx.fillRect(innerRadius + 2, -armHeight + 2, armWidth - 4, 4);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.fillRect(-outerRadius + 2, -armHeight + 2, armWidth - 4, 5);
+  ctx.fillRect(innerRadius + 2, -armHeight + 2, armWidth - 4, 5);
+  
+  // Pole tips
+  ctx.fillStyle = 'hsl(0, 0%, 85%)';
+  ctx.fillRect(-outerRadius + 1, -armHeight - 2, armWidth - 2, 4);
+  ctx.fillRect(innerRadius + 1, -armHeight - 2, armWidth - 2, 4);
   
   ctx.restore();
 };
 
-// Draw auto paddle icon (paddle with arrows/A)
+// Draw auto paddle icon ("AUTO" text in round circle)
 const drawAutoPaddleIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const paddleWidth = size * 0.6;
-  const paddleHeight = size * 0.2;
+  const circleRadius = size * 0.4;
   
   // Green glow
-  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.5);
-  glowGrad.addColorStop(0, 'hsla(120, 100%, 60%, 0.4)');
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, circleRadius * 1.4);
+  glowGrad.addColorStop(0, 'hsla(120, 100%, 55%, 0.5)');
   glowGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
-  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+  ctx.arc(x, y, circleRadius * 1.4, 0, Math.PI * 2);
   ctx.fill();
   
-  // Paddle body (green)
-  const bodyGrad = ctx.createLinearGradient(x - paddleWidth/2, y, x - paddleWidth/2, y + paddleHeight);
-  bodyGrad.addColorStop(0, 'hsl(120, 70%, 55%)');
-  bodyGrad.addColorStop(0.5, 'hsl(120, 65%, 45%)');
-  bodyGrad.addColorStop(1, 'hsl(120, 60%, 35%)');
+  // Circle background
+  const circleGrad = ctx.createRadialGradient(x - circleRadius * 0.2, y - circleRadius * 0.2, 0, x, y, circleRadius);
+  circleGrad.addColorStop(0, 'hsl(120, 70%, 55%)');
+  circleGrad.addColorStop(0.5, 'hsl(120, 65%, 45%)');
+  circleGrad.addColorStop(1, 'hsl(120, 60%, 30%)');
   
-  ctx.fillStyle = bodyGrad;
+  ctx.fillStyle = circleGrad;
   ctx.beginPath();
-  ctx.roundRect(x - paddleWidth/2, y + size * 0.1, paddleWidth, paddleHeight, paddleHeight/2);
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
   
-  // Movement arrows (left and right)
-  ctx.strokeStyle = 'hsl(120, 100%, 70%)';
+  // Circle border
+  ctx.strokeStyle = 'hsl(120, 80%, 65%)';
   ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  
-  // Left arrow
   ctx.beginPath();
-  ctx.moveTo(x - paddleWidth/2 - size * 0.08, y + size * 0.2);
-  ctx.lineTo(x - paddleWidth/2 - size * 0.18, y + size * 0.2);
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x - paddleWidth/2 - size * 0.18, y + size * 0.2);
-  ctx.lineTo(x - paddleWidth/2 - size * 0.12, y + size * 0.12);
-  ctx.lineTo(x - paddleWidth/2 - size * 0.12, y + size * 0.28);
-  ctx.closePath();
-  ctx.fillStyle = 'hsl(120, 100%, 70%)';
-  ctx.fill();
   
-  // Right arrow
-  ctx.beginPath();
-  ctx.moveTo(x + paddleWidth/2 + size * 0.08, y + size * 0.2);
-  ctx.lineTo(x + paddleWidth/2 + size * 0.18, y + size * 0.2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x + paddleWidth/2 + size * 0.18, y + size * 0.2);
-  ctx.lineTo(x + paddleWidth/2 + size * 0.12, y + size * 0.12);
-  ctx.lineTo(x + paddleWidth/2 + size * 0.12, y + size * 0.28);
-  ctx.closePath();
-  ctx.fill();
-  
-  // "A" letter in center
+  // "AUTO" text
   ctx.fillStyle = 'white';
-  ctx.font = `bold ${size * 0.25}px Orbitron`;
+  ctx.font = `bold ${size * 0.18}px Orbitron`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('A', x, y - size * 0.15);
+  ctx.fillText('AUTO', x, y);
+  
+  // Highlight arc
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius - 3, -Math.PI * 0.8, -Math.PI * 0.2);
+  ctx.stroke();
 };
 
 // Draw shock/lightning icon (Z-shaped electric bolt)
@@ -742,7 +738,7 @@ export const drawPowerUp = (
   const { x, y, width, height, type } = powerUp;
   const centerX = x + width / 2;
   const centerY = y + height / 2;
-  const iconSize = Math.min(width, height) * 1.2;
+  const iconSize = Math.min(width, height) * 1.3; // Bigger icons since no box
   
   ctx.save();
   
@@ -750,50 +746,24 @@ export const drawPowerUp = (
   const pulse = 1 + Math.sin(gameTime * 5) * 0.08;
   
   // Get colors based on type
-  const { bgColor, glowColor, isNegative } = getPowerUpColors(type);
+  const { glowColor, isNegative } = getPowerUpColors(type);
   
-  // Draw background pill with glow
+  // Just draw a subtle glow behind the icon (no box)
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 15 * pulse;
+  ctx.shadowBlur = 18 * pulse;
   
-  // Background pill gradient
-  const pillGrad = ctx.createLinearGradient(x, y, x, y + height);
-  pillGrad.addColorStop(0, adjustBrightness(bgColor, 20));
-  pillGrad.addColorStop(0.4, bgColor);
-  pillGrad.addColorStop(1, adjustBrightness(bgColor, -20));
-  
-  ctx.fillStyle = pillGrad;
+  // Very subtle background glow circle
+  const bgGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, iconSize * 0.5);
+  bgGlow.addColorStop(0, isNegative ? 'rgba(150, 50, 50, 0.3)' : 'rgba(50, 150, 150, 0.3)');
+  bgGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = bgGlow;
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, height / 2);
+  ctx.arc(centerX, centerY, iconSize * 0.5, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.shadowBlur = 0;
   
-  // Glossy highlight on pill
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-  ctx.beginPath();
-  ctx.ellipse(centerX, y + height * 0.25, width * 0.4, height * 0.2, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Warning border for negative power-ups
-  if (isNegative) {
-    ctx.strokeStyle = 'hsla(0, 100%, 40%, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.roundRect(x + 1, y + 1, width - 2, height - 2, (height - 2) / 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  } else {
-    // Nice border for positive
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(x + 1, y + 1, width - 2, height - 2, (height - 2) / 2);
-    ctx.stroke();
-  }
-  
-  // Draw the icon
+  // Draw the icon (now without any box)
   drawPowerUpIcon(ctx, type, centerX, centerY, iconSize);
   
   ctx.restore();

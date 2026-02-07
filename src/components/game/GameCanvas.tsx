@@ -88,6 +88,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const prevLevelRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
 
+  // Track user override for auto-paddle
+  const userOverrideRef = useRef(false);
+  
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
   useEffect(() => {
     const levelChanged = prevLevelRef.current !== gameState.level;
@@ -111,7 +114,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }));
       
       setBricks(newBricks);
-      setBallSpeed(level.ballSpeed);
+      
+      // Reset ball speed to base level speed (normalize)
+      const baseBallSpeed = level.ballSpeed;
+      setBallSpeed(baseBallSpeed);
+      
       setPowerUps([]);
       setLasers([]);
       setCoins([]);
@@ -146,13 +153,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
       setLevelCoins(newLevelCoins);
       
-      // Create initial ball
-      setBalls([{
+      // Create initial ball with normalized speed - ball waits for touch to launch
+      magnetBallRef.current = {
         id: generateId(),
         position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 60 },
-        velocity: { dx: 0, dy: -level.ballSpeed },
+        velocity: { dx: 0, dy: 0 },
         radius: BALL_RADIUS,
-      }]);
+      };
+      setBalls([magnetBallRef.current]);
     }
   }, [gameState.status, gameState.level]);
 
@@ -271,7 +279,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     return addScore ? scoreValue : 0;
   }, [combo, createParticles, handleExplosion, gameTime]);
 
-  // Handle paddle movement and aim direction (only updates target, not actual position when auto-paddle)
+  // Handle paddle movement and aim direction (allows user control override during auto-paddle)
   const handlePointerMove = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -282,10 +290,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const x = (clientX - rect.left) * scaleX;
     const y = (clientY - rect.top) * scaleY;
     
-    // Only update paddle target if not in auto-paddle mode
-    if (!isAutoPaddle) {
-      paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
+    // Allow user to override auto-paddle with their own control
+    if (isAutoPaddle) {
+      userOverrideRef.current = true;
     }
+    
+    // Update paddle target - always allow user control (override auto-paddle)
+    paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
     
     // Update aim angle if ball is on paddle - allow full 180-degree range
     if (magnetBallRef.current) {
@@ -390,17 +401,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   // Auto-fire laser when paddle has laser power-up
   useEffect(() => {
+    // Clear any existing interval first
+    if (laserAutoFireRef.current) {
+      clearInterval(laserAutoFireRef.current);
+      laserAutoFireRef.current = null;
+    }
+    
     if (paddle.hasLaser && gameState.status === 'playing') {
-      // Start auto-fire interval
+      // Fire immediately when getting the power-up
+      fireLaser();
+      
+      // Then continue auto-fire every 300ms
       laserAutoFireRef.current = setInterval(() => {
-        fireLaser();
-      }, 300); // Fire every 0.3 seconds
-    } else {
-      // Clear interval when laser power-up ends
-      if (laserAutoFireRef.current) {
-        clearInterval(laserAutoFireRef.current);
-        laserAutoFireRef.current = null;
-      }
+        if (paddle.hasLaser) {
+          fireLaser();
+        }
+      }, 300);
     }
     
     return () => {
@@ -409,7 +425,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         laserAutoFireRef.current = null;
       }
     };
-  }, [paddle.hasLaser, gameState.status, fireLaser]);
+  }, [paddle.hasLaser, gameState.status]);
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
@@ -462,8 +478,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // Auto-paddle logic - follow the closest ball
-    if (isAutoPaddle) {
+    // Auto-paddle logic - follow the closest ball (only if user hasn't overridden)
+    if (isAutoPaddle && !userOverrideRef.current) {
       const activeBalls = balls.filter(b => b.velocity.dy !== 0 || b.velocity.dx !== 0);
       if (activeBalls.length > 0) {
         // Find the lowest ball (closest to paddle)
@@ -472,6 +488,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         );
         paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, lowestBall.position.x - paddle.width / 2));
       }
+    }
+    
+    // Reset user override after a short delay if they stop touching
+    if (!isAutoPaddle) {
+      userOverrideRef.current = false;
     }
 
     // Smooth paddle movement
@@ -571,25 +592,34 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return aliveBalls;
     });
 
-    // Check paddle collision
+    // Check paddle collision - only if ball is moving downward to prevent stuck balls
     setBalls(prevBalls => {
       return prevBalls.map(ball => {
+        // Skip if ball is already magnetized or moving upward
+        if (magnetBallRef.current?.id === ball.id) return ball;
+        if (ball.velocity.dy <= 0) return ball;
+        
         if (checkBallPaddleCollision(ball, paddle)) {
           const angle = calculateBounceAngle(ball, paddle);
-          const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2);
+          const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
           
           audioManager.playPaddleHit();
           createParticles(ball.position.x, ball.position.y, 'hsl(180, 100%, 50%)', 4);
           
-          // Magnet catches ball
-          if (paddle.hasMagnet) {
+          // Magnet catches ball (only catch one ball)
+          if (paddle.hasMagnet && !magnetBallRef.current) {
             magnetBallRef.current = ball;
             audioManager.playMagnetCatch();
+            return {
+              ...ball,
+              position: { x: paddle.x + paddle.width / 2, y: paddle.y - ball.radius - 1 },
+              velocity: { dx: 0, dy: 0 },
+            };
           }
           
           return {
             ...ball,
-            position: { ...ball.position, y: paddle.y - ball.radius - 1 },
+            position: { ...ball.position, y: paddle.y - ball.radius - 2 },
             velocity: {
               dx: Math.sin(angle) * speed,
               dy: -Math.abs(Math.cos(angle) * speed),
@@ -638,22 +668,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     });
 
-    // Check brick collisions
+    // Check brick collisions - only process one collision per ball per frame
     setBricks(prevBricks => {
       let scoreToAdd = 0;
+      const ballsHitBricks = new Set<string>(); // Track which balls already hit a brick this frame
+      
       const updatedBricks = prevBricks.map(brick => {
         if (brick.destroyed) return brick;
 
         for (const ball of balls) {
+          // Skip if this ball already hit a brick this frame (prevents breaking multiple bricks)
+          if (ballsHitBricks.has(ball.id)) continue;
+          
           if (checkBallBrickCollision(ball, brick)) {
+            // Mark this ball as having hit a brick
+            if (!isFireball && !isBigBall) {
+              ballsHitBricks.add(ball.id);
+            }
+            
             // Indestructible bricks only bounce
             if (brick.type === 'indestructible') {
               createParticles(ball.position.x, ball.position.y, 'hsl(220, 20%, 60%)', 3);
               return brick;
             }
             
-          // Big ball or fireball destroys any brick in one hit
-          const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
+            // Big ball or fireball destroys any brick in one hit
+            const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
             
             if (newHits <= 0) {
               const score = destroyBrick(brick);
@@ -670,9 +710,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 });
               }
               
-              // Handle shock power-up - destroy nearby bricks
+              // Handle shock power-up - destroy nearby bricks (increased radius)
               if (isShock) {
-                const shockRadius = 80;
+                const shockRadius = 120; // Increased from 80 to 120
                 prevBricks.forEach(nearbyBrick => {
                   if (nearbyBrick.id !== brick.id && !nearbyBrick.destroyed && nearbyBrick.type !== 'indestructible') {
                     const dx = nearbyBrick.x + nearbyBrick.width / 2 - (brick.x + brick.width / 2);

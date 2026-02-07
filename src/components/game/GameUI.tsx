@@ -1,6 +1,6 @@
 import React from 'react';
 import { GameState } from '@/types/game';
-import { Heart, Star, Zap, Coins } from 'lucide-react';
+import { Heart, Star, Zap } from 'lucide-react';
 
 interface GameUIProps {
   gameState: GameState;
@@ -8,71 +8,49 @@ interface GameUIProps {
 
 const GameUI: React.FC<GameUIProps> = ({ gameState }) => {
   return (
-    <div className="flex flex-col w-full max-w-[400px] mx-auto mb-4 px-2 gap-2">
-      {/* Main Stats Row */}
-      <div className="flex justify-between items-center">
-        {/* Lives */}
-        <div className="flex items-center gap-1">
-          {Array.from({ length: Math.min(gameState.lives, 5) }).map((_, i) => (
+    <div className="flex justify-between items-center w-full max-w-[400px] mx-auto mb-3 px-1 gap-2">
+      {/* Lives Box */}
+      <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-neon-magenta/40 rounded-lg px-3 py-1.5">
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: Math.min(gameState.lives, 3) }).map((_, i) => (
             <Heart
               key={i}
-              className="w-5 h-5 text-neon-magenta fill-neon-magenta animate-pulse-neon"
+              className="w-4 h-4 text-neon-magenta fill-neon-magenta"
             />
           ))}
-          {gameState.lives > 5 && (
-            <span className="font-display text-sm text-neon-magenta">+{gameState.lives - 5}</span>
+          {gameState.lives > 3 && (
+            <span className="font-display text-xs text-neon-magenta ml-0.5">+{gameState.lives - 3}</span>
           )}
-          {Array.from({ length: Math.max(0, Math.min(5, 3) - Math.min(gameState.lives, 3)) }).map((_, i) => (
+          {Array.from({ length: Math.max(0, 3 - Math.min(gameState.lives, 3)) }).map((_, i) => (
             <Heart
               key={`empty-${i}`}
-              className="w-5 h-5 text-muted-foreground/30"
+              className="w-4 h-4 text-muted-foreground/30"
             />
           ))}
-        </div>
-
-        {/* Level */}
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-neon-yellow" />
-          <span className="font-display text-lg text-neon-yellow">
-            LVL {gameState.level}
-          </span>
-        </div>
-
-        {/* Score */}
-        <div className="flex items-center gap-2">
-          <Star className="w-5 h-5 text-neon-cyan fill-neon-cyan" />
-          <span className="font-display text-lg text-neon-cyan text-glow-cyan">
-            {gameState.score.toLocaleString()}
-          </span>
         </div>
       </div>
 
-      {/* Secondary Stats Row */}
-      <div className="flex justify-between items-center text-sm">
-        {/* Coins */}
-        <div className="flex items-center gap-1">
-          <Coins className="w-4 h-4 text-neon-yellow" />
-          <span className="font-display text-neon-yellow">
-            {gameState.coins}
-          </span>
-        </div>
+      {/* Level Box */}
+      <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-neon-yellow/40 rounded-lg px-3 py-1.5">
+        <Zap className="w-4 h-4 text-neon-yellow" />
+        <span className="font-display text-sm text-neon-yellow">
+          {gameState.level}
+        </span>
+      </div>
 
-        {/* High Score */}
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <span className="font-game text-xs">BEST:</span>
-          <span className="font-display text-sm">
-            {gameState.highScore.toLocaleString()}
-          </span>
-        </div>
-
-        {/* Combo */}
-        {gameState.combo > 0 && (
-          <div className="flex items-center gap-1">
-            <span className="font-display text-sm text-neon-orange animate-pulse-neon">
-              {gameState.combo}x COMBO
-            </span>
-          </div>
-        )}
+      {/* Score Box */}
+      <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-neon-cyan/40 rounded-lg px-3 py-1.5">
+        <Star className="w-4 h-4 text-neon-cyan fill-neon-cyan" />
+        <span className="font-display text-sm text-neon-cyan text-glow-cyan">
+          {gameState.score.toLocaleString()}
+        </span>
+      </div>
+      
+      {/* High Score Mini */}
+      <div className="hidden sm:flex items-center bg-black/40 backdrop-blur-sm border border-muted-foreground/30 rounded-lg px-2 py-1">
+        <span className="font-game text-xs text-muted-foreground">
+          HI: {gameState.highScore.toLocaleString()}
+        </span>
       </div>
     </div>
   );
