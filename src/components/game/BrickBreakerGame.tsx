@@ -280,7 +280,7 @@ const BrickBreakerGame: React.FC = () => {
                   onClick={handleReplayLevel}
                   className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
                 >
-                  RETRY
+                  RESTART LEVEL
                 </button>
                 
                 <button
