@@ -59,73 +59,99 @@ const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, s
   ctx.fill();
 };
 
-// Draw multi-ball icon (2 balls side by side)
-const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const ballRadius = size * 0.25;
-  const spacing = size * 0.3;
+// Draw blue glowing circle background (shared helper)
+const drawBlueCircleBackground = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const circleRadius = size * 0.42;
   
-  // Left ball
-  const leftGrad = ctx.createRadialGradient(x - spacing - ballRadius * 0.2, y - ballRadius * 0.2, 0, x - spacing, y, ballRadius);
-  leftGrad.addColorStop(0, 'hsl(40, 100%, 85%)');
-  leftGrad.addColorStop(0.4, 'hsl(25, 100%, 60%)');
-  leftGrad.addColorStop(1, 'hsl(10, 100%, 40%)');
-  ctx.fillStyle = leftGrad;
+  // Outer glow
+  const outerGlow = ctx.createRadialGradient(x, y, circleRadius * 0.7, x, y, circleRadius * 1.4);
+  outerGlow.addColorStop(0, 'hsla(200, 100%, 60%, 0.4)');
+  outerGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = outerGlow;
   ctx.beginPath();
-  ctx.arc(x - spacing, y, ballRadius, 0, Math.PI * 2);
+  ctx.arc(x, y, circleRadius * 1.4, 0, Math.PI * 2);
   ctx.fill();
   
-  // Right ball
-  const rightGrad = ctx.createRadialGradient(x + spacing - ballRadius * 0.2, y - ballRadius * 0.2, 0, x + spacing, y, ballRadius);
-  rightGrad.addColorStop(0, 'hsl(40, 100%, 85%)');
-  rightGrad.addColorStop(0.4, 'hsl(25, 100%, 60%)');
-  rightGrad.addColorStop(1, 'hsl(10, 100%, 40%)');
-  ctx.fillStyle = rightGrad;
+  // Main blue circle
+  const circleGrad = ctx.createRadialGradient(x - circleRadius * 0.3, y - circleRadius * 0.3, 0, x, y, circleRadius);
+  circleGrad.addColorStop(0, 'hsl(200, 90%, 65%)');
+  circleGrad.addColorStop(0.5, 'hsl(205, 85%, 50%)');
+  circleGrad.addColorStop(1, 'hsl(210, 80%, 40%)');
+  
+  ctx.fillStyle = circleGrad;
   ctx.beginPath();
-  ctx.arc(x + spacing, y, ballRadius, 0, Math.PI * 2);
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
   
-  // Highlights
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  // Inner highlight ring
+  ctx.strokeStyle = 'hsla(195, 100%, 75%, 0.7)';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(x - spacing - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.2, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.arc(x, y, circleRadius - 2, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Outer bright edge
+  ctx.strokeStyle = 'hsla(190, 100%, 80%, 0.5)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(x + spacing - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.2, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.arc(x, y, circleRadius + 1, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Highlight arc on top
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius - 4, -Math.PI * 0.8, -Math.PI * 0.2);
+  ctx.stroke();
 };
 
-// Draw 7-ball icon (7 small balls arranged in pattern)
-const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const ballRadius = size * 0.12;
+// Draw multi-ball icon (2 white balls in blue circle)
+const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  // Blue circle background
+  drawBlueCircleBackground(ctx, x, y, size);
   
-  // Positions for 7 balls in a hexagonal pattern
+  // Two white balls
+  const ballRadius = size * 0.14;
+  const spacing = size * 0.18;
+  
+  // Draw two white balls
+  [x - spacing, x + spacing].forEach(bx => {
+    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, y - ballRadius * 0.3, 0, bx, y, ballRadius);
+    ballGrad.addColorStop(0, 'white');
+    ballGrad.addColorStop(0.5, 'hsl(0, 0%, 90%)');
+    ballGrad.addColorStop(1, 'hsl(0, 0%, 75%)');
+    ctx.fillStyle = ballGrad;
+    ctx.beginPath();
+    ctx.arc(bx, y, ballRadius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+};
+
+// Draw 7-ball icon (3 white balls in triangle pattern inside blue circle)
+const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  // Blue circle background
+  drawBlueCircleBackground(ctx, x, y, size);
+  
+  const ballRadius = size * 0.1;
+  
+  // Triangle pattern - 1 on top, 2 on bottom (like reference image)
   const positions = [
-    { dx: 0, dy: 0 },           // Center
-    { dx: -0.25, dy: -0.2 },    // Top left
-    { dx: 0.25, dy: -0.2 },     // Top right
-    { dx: -0.35, dy: 0.1 },     // Mid left
-    { dx: 0.35, dy: 0.1 },      // Mid right
-    { dx: -0.2, dy: 0.3 },      // Bottom left
-    { dx: 0.2, dy: 0.3 },       // Bottom right
+    { dx: 0, dy: -0.12 },         // Top center
+    { dx: -0.15, dy: 0.12 },      // Bottom left
+    { dx: 0.15, dy: 0.12 },       // Bottom right
   ];
   
-  positions.forEach((pos, i) => {
+  positions.forEach(pos => {
     const bx = x + pos.dx * size;
     const by = y + pos.dy * size;
     
     const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, by - ballRadius * 0.3, 0, bx, by, ballRadius);
-    ballGrad.addColorStop(0, 'hsl(280, 100%, 85%)');
-    ballGrad.addColorStop(0.5, 'hsl(280, 100%, 60%)');
-    ballGrad.addColorStop(1, 'hsl(260, 100%, 40%)');
+    ballGrad.addColorStop(0, 'white');
+    ballGrad.addColorStop(0.5, 'hsl(0, 0%, 90%)');
+    ballGrad.addColorStop(1, 'hsl(0, 0%, 75%)');
     ctx.fillStyle = ballGrad;
     ctx.beginPath();
     ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.beginPath();
-    ctx.arc(bx - ballRadius * 0.3, by - ballRadius * 0.3, ballRadius * 0.3, 0, Math.PI * 2);
     ctx.fill();
   });
 };
@@ -345,158 +371,94 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
 };
 
-// Draw magnet icon (big U-shaped horseshoe magnet only - no box)
+// Draw magnet icon (horseshoe magnet inside blue circle)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const magnetSize = size * 0.45;
+  // Blue circle background
+  drawBlueCircleBackground(ctx, x, y, size);
+  
+  // Horseshoe magnet inside
+  const magnetSize = size * 0.28;
   
   ctx.save();
-  ctx.translate(x, y + magnetSize * 0.1);
+  ctx.translate(x, y + magnetSize * 0.15);
   
-  // U-shaped magnet body - big horseshoe, no box
-  const armWidth = magnetSize * 0.5;
-  const innerRadius = magnetSize * 0.3;
+  const armWidth = magnetSize * 0.45;
+  const innerRadius = magnetSize * 0.25;
   const outerRadius = innerRadius + armWidth;
-  const armHeight = magnetSize * 0.6;
+  const armHeight = magnetSize * 0.5;
   
   // Draw the horseshoe (U shape)
   ctx.beginPath();
-  // Left arm outer
   ctx.moveTo(-outerRadius, -armHeight);
-  ctx.lineTo(-outerRadius, magnetSize * 0.15);
-  // Bottom curve outer
-  ctx.arc(0, magnetSize * 0.15, outerRadius, Math.PI, 0, false);
-  // Right arm outer
+  ctx.lineTo(-outerRadius, magnetSize * 0.1);
+  ctx.arc(0, magnetSize * 0.1, outerRadius, Math.PI, 0, false);
   ctx.lineTo(outerRadius, -armHeight);
-  // Right arm inner
   ctx.lineTo(innerRadius, -armHeight);
-  ctx.lineTo(innerRadius, magnetSize * 0.15);
-  // Bottom curve inner
-  ctx.arc(0, magnetSize * 0.15, innerRadius, 0, Math.PI, true);
-  // Left arm inner
+  ctx.lineTo(innerRadius, magnetSize * 0.1);
+  ctx.arc(0, magnetSize * 0.1, innerRadius, 0, Math.PI, true);
   ctx.lineTo(-innerRadius, -armHeight);
   ctx.closePath();
   
-  // Gradient fill - classic red/blue magnet colors
+  // Classic red/blue magnet gradient
   const magnetGrad = ctx.createLinearGradient(-outerRadius, 0, outerRadius, 0);
-  magnetGrad.addColorStop(0, 'hsl(0, 85%, 55%)'); // Red
+  magnetGrad.addColorStop(0, 'hsl(0, 85%, 55%)');
   magnetGrad.addColorStop(0.45, 'hsl(0, 85%, 50%)');
   magnetGrad.addColorStop(0.55, 'hsl(210, 85%, 50%)');
-  magnetGrad.addColorStop(1, 'hsl(210, 100%, 55%)'); // Blue
+  magnetGrad.addColorStop(1, 'hsl(210, 100%, 55%)');
   ctx.fillStyle = magnetGrad;
   ctx.fill();
   
-  // Add subtle 3D effect
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.lineWidth = 1;
   ctx.stroke();
   
-  // Highlight on top edges
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.fillRect(-outerRadius + 2, -armHeight + 2, armWidth - 4, 5);
-  ctx.fillRect(innerRadius + 2, -armHeight + 2, armWidth - 4, 5);
-  
   // Pole tips
-  ctx.fillStyle = 'hsl(0, 0%, 85%)';
-  ctx.fillRect(-outerRadius + 1, -armHeight - 2, armWidth - 2, 4);
-  ctx.fillRect(innerRadius + 1, -armHeight - 2, armWidth - 2, 4);
+  ctx.fillStyle = 'hsl(0, 0%, 90%)';
+  ctx.fillRect(-outerRadius + 1, -armHeight - 1, armWidth - 2, 3);
+  ctx.fillRect(innerRadius + 1, -armHeight - 1, armWidth - 2, 3);
   
   ctx.restore();
 };
 
-// Draw auto paddle icon ("AUTO" text in round circle)
+// Draw auto paddle icon ("AUTO" text in blue circle - like reference)
 const drawAutoPaddleIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  const circleRadius = size * 0.4;
+  // Blue circle background
+  drawBlueCircleBackground(ctx, x, y, size);
   
-  // Green glow
-  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, circleRadius * 1.4);
-  glowGrad.addColorStop(0, 'hsla(120, 100%, 55%, 0.5)');
-  glowGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(x, y, circleRadius * 1.4, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Circle background
-  const circleGrad = ctx.createRadialGradient(x - circleRadius * 0.2, y - circleRadius * 0.2, 0, x, y, circleRadius);
-  circleGrad.addColorStop(0, 'hsl(120, 70%, 55%)');
-  circleGrad.addColorStop(0.5, 'hsl(120, 65%, 45%)');
-  circleGrad.addColorStop(1, 'hsl(120, 60%, 30%)');
-  
-  ctx.fillStyle = circleGrad;
-  ctx.beginPath();
-  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Circle border
-  ctx.strokeStyle = 'hsl(120, 80%, 65%)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  // "AUTO" text
-  ctx.fillStyle = 'white';
-  ctx.font = `bold ${size * 0.18}px Orbitron`;
+  // Yellow "AUTO" text (like reference image)
+  ctx.fillStyle = 'hsl(50, 100%, 55%)';
+  ctx.font = `bold ${size * 0.22}px Orbitron`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'hsl(50, 100%, 40%)';
+  ctx.shadowBlur = 4;
   ctx.fillText('AUTO', x, y);
-  
-  // Highlight arc
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(x, y, circleRadius - 3, -Math.PI * 0.8, -Math.PI * 0.2);
-  ctx.stroke();
+  ctx.shadowBlur = 0;
 };
 
-// Draw shock/lightning icon (Z-shaped electric bolt)
+// Draw shock/lightning icon (white bolt in blue circle - like reference)
 const drawShockIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-  // Electric glow
-  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.6);
-  glowGrad.addColorStop(0, 'hsla(55, 100%, 70%, 0.5)');
-  glowGrad.addColorStop(0.5, 'hsla(50, 100%, 55%, 0.3)');
-  glowGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
-  ctx.fill();
+  // Blue circle background
+  drawBlueCircleBackground(ctx, x, y, size);
   
-  // Lightning bolt Z shape
-  const boltGrad = ctx.createLinearGradient(x, y - size * 0.4, x, y + size * 0.4);
-  boltGrad.addColorStop(0, 'hsl(55, 100%, 85%)');
-  boltGrad.addColorStop(0.3, 'hsl(50, 100%, 60%)');
-  boltGrad.addColorStop(0.7, 'hsl(45, 100%, 50%)');
-  boltGrad.addColorStop(1, 'hsl(40, 100%, 45%)');
-  
-  ctx.fillStyle = boltGrad;
+  // White lightning bolt
+  ctx.fillStyle = 'white';
   ctx.beginPath();
-  // Z-shaped bolt
-  ctx.moveTo(x + size * 0.2, y - size * 0.4);
-  ctx.lineTo(x - size * 0.15, y - size * 0.4);
-  ctx.lineTo(x + size * 0.05, y - size * 0.05);
-  ctx.lineTo(x - size * 0.2, y - size * 0.05);
-  ctx.lineTo(x + size * 0.05, y + size * 0.4);
-  ctx.lineTo(x + size * 0.15, y + size * 0.4);
-  ctx.lineTo(x - size * 0.05, y + size * 0.05);
-  ctx.lineTo(x + size * 0.2, y + size * 0.05);
+  // Clean lightning bolt shape
+  const s = size * 0.25;
+  ctx.moveTo(x + s * 0.15, y - s * 1.1);  // Top right
+  ctx.lineTo(x - s * 0.4, y - s * 0.1);    // Middle left
+  ctx.lineTo(x + s * 0.1, y - s * 0.1);    // Middle right inner
+  ctx.lineTo(x - s * 0.15, y + s * 1.1);   // Bottom point
+  ctx.lineTo(x + s * 0.4, y + s * 0.1);    // Middle right
+  ctx.lineTo(x - s * 0.1, y + s * 0.1);    // Middle left inner
   ctx.closePath();
   ctx.fill();
   
-  // White core highlight
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.lineWidth = 1;
+  // Subtle highlight
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 0.5;
   ctx.stroke();
-  
-  // Electric sparks around
-  ctx.fillStyle = 'hsl(55, 100%, 75%)';
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    const sparkX = x + Math.cos(angle) * size * 0.35;
-    const sparkY = y + Math.sin(angle) * size * 0.35;
-    ctx.beginPath();
-    ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
 };
 
 // Draw laser paddle (paddle with laser beams)
@@ -648,49 +610,49 @@ const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fill();
 };
 
-// Draw speedup icon (arrow pointing up for speed increase)
+// Draw speedup icon (white arrow pointing UP in blue circle - negative power-up)
 const drawSpeedupIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  // Blue circle background (slightly red-tinted for negative)
+  const circleRadius = size * 0.42;
+  
   // Outer glow
-  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.5);
-  glowGrad.addColorStop(0, 'hsla(35, 100%, 60%, 0.5)');
-  glowGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = glowGrad;
+  const outerGlow = ctx.createRadialGradient(x, y, circleRadius * 0.7, x, y, circleRadius * 1.4);
+  outerGlow.addColorStop(0, 'hsla(20, 100%, 50%, 0.4)');
+  outerGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = outerGlow;
   ctx.beginPath();
-  ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+  ctx.arc(x, y, circleRadius * 1.4, 0, Math.PI * 2);
   ctx.fill();
   
-  // Arrow up shape (orange/red for danger - speed increase is negative)
-  const arrowGrad = ctx.createLinearGradient(x, y + size * 0.35, x, y - size * 0.35);
-  arrowGrad.addColorStop(0, 'hsl(25, 100%, 65%)');
-  arrowGrad.addColorStop(0.5, 'hsl(15, 100%, 50%)');
-  arrowGrad.addColorStop(1, 'hsl(5, 100%, 45%)');
+  // Red-tinted circle for negative effect
+  const circleGrad = ctx.createRadialGradient(x - circleRadius * 0.3, y - circleRadius * 0.3, 0, x, y, circleRadius);
+  circleGrad.addColorStop(0, 'hsl(15, 85%, 55%)');
+  circleGrad.addColorStop(0.5, 'hsl(10, 80%, 45%)');
+  circleGrad.addColorStop(1, 'hsl(5, 75%, 35%)');
   
-  ctx.fillStyle = arrowGrad;
+  ctx.fillStyle = circleGrad;
   ctx.beginPath();
-  // Arrow head
-  ctx.moveTo(x, y - size * 0.4);
-  ctx.lineTo(x + size * 0.35, y - size * 0.05);
-  ctx.lineTo(x + size * 0.12, y - size * 0.05);
-  // Arrow stem
-  ctx.lineTo(x + size * 0.12, y + size * 0.35);
-  ctx.lineTo(x - size * 0.12, y + size * 0.35);
-  ctx.lineTo(x - size * 0.12, y - size * 0.05);
-  ctx.lineTo(x - size * 0.35, y - size * 0.05);
-  ctx.closePath();
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
   
-  // Highlight edge
-  ctx.strokeStyle = 'hsl(35, 100%, 75%)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'hsla(15, 100%, 65%, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius - 2, 0, Math.PI * 2);
   ctx.stroke();
   
-  // Inner highlight
-  ctx.fillStyle = 'rgba(255, 255, 200, 0.5)';
+  // White arrow pointing UP
+  ctx.fillStyle = 'white';
   ctx.beginPath();
-  ctx.moveTo(x - size * 0.02, y - size * 0.3);
-  ctx.lineTo(x + size * 0.15, y - size * 0.1);
-  ctx.lineTo(x + size * 0.08, y - size * 0.1);
-  ctx.lineTo(x - size * 0.02, y - size * 0.2);
+  const s = size * 0.18;
+  // Arrow head pointing UP
+  ctx.moveTo(x, y - s * 1.2);              // Top point
+  ctx.lineTo(x + s * 0.9, y + s * 0.1);    // Bottom right of head
+  ctx.lineTo(x + s * 0.35, y + s * 0.1);   // Inner right
+  ctx.lineTo(x + s * 0.35, y + s * 1.0);   // Bottom right of stem
+  ctx.lineTo(x - s * 0.35, y + s * 1.0);   // Bottom left of stem
+  ctx.lineTo(x - s * 0.35, y + s * 0.1);   // Inner left
+  ctx.lineTo(x - s * 0.9, y + s * 0.1);    // Bottom left of head
   ctx.closePath();
   ctx.fill();
 };
