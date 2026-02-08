@@ -315,17 +315,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   }, [paddle.width, balls, isAutoPaddle]);
 
-  // Fire laser
+  // Fire laser - uses paddle position ref for accuracy
+  const paddleRef = useRef(paddle);
+  paddleRef.current = paddle;
+  
   const fireLaser = useCallback(() => {
-    if (paddle.hasLaser) {
+    if (paddleRef.current.hasLaser) {
       audioManager.playLaser();
       setLasers(prev => [
         ...prev,
-        { id: generateId(), x: paddle.x + 10, y: paddle.y, speed: 600 },
-        { id: generateId(), x: paddle.x + paddle.width - 10, y: paddle.y, speed: 600 },
+        { id: generateId(), x: paddleRef.current.x + 10, y: paddleRef.current.y, speed: 600 },
+        { id: generateId(), x: paddleRef.current.x + paddleRef.current.width - 10, y: paddleRef.current.y, speed: 600 },
       ]);
     }
-  }, [paddle]);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -710,15 +713,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 });
               }
               
-              // Handle shock power-up - destroy nearby bricks (increased radius)
+              // Handle shock power-up - ONLY destroy bricks that are directly adjacent/touching the hit brick
               if (isShock) {
-                const shockRadius = 120; // Increased from 80 to 120
+                const brickCenterX = brick.x + brick.width / 2;
+                const brickCenterY = brick.y + brick.height / 2;
+                
                 prevBricks.forEach(nearbyBrick => {
                   if (nearbyBrick.id !== brick.id && !nearbyBrick.destroyed && nearbyBrick.type !== 'indestructible') {
-                    const dx = nearbyBrick.x + nearbyBrick.width / 2 - (brick.x + brick.width / 2);
-                    const dy = nearbyBrick.y + nearbyBrick.height / 2 - (brick.y + brick.height / 2);
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < shockRadius) {
+                    // Check if bricks are adjacent (touching or very close)
+                    const nearCenterX = nearbyBrick.x + nearbyBrick.width / 2;
+                    const nearCenterY = nearbyBrick.y + nearbyBrick.height / 2;
+                    
+                    // Calculate if bricks are touching (within one brick width/height)
+                    const gapX = Math.abs(nearCenterX - brickCenterX) - (brick.width / 2 + nearbyBrick.width / 2);
+                    const gapY = Math.abs(nearCenterY - brickCenterY) - (brick.height / 2 + nearbyBrick.height / 2);
+                    
+                    // Only destroy if truly adjacent (gap <= 2 pixels)
+                    if (gapX <= 2 && gapY <= 2) {
                       nearbyBrick.destroyed = true;
                       nearbyBrick.hits = 0;
                       const shockScore = destroyBrick(nearbyBrick);
