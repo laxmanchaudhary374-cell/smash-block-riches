@@ -138,12 +138,19 @@ const BrickBreakerGame: React.FC = () => {
   }, []);
 
   const handleReplayLevel = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      status: 'playing',
-      lives: 3,
-    }));
-    setScreenState('playing');
+    setIsNewHighScore(false);
+    // Force level reinit by going to menu briefly, then back to playing
+    setScreenState('menu');
+    setTimeout(() => {
+      setGameState(prev => ({
+        ...prev,
+        status: 'playing',
+        lives: 3,
+        combo: 0,
+        maxCombo: 0,
+      }));
+      setScreenState('playing');
+    }, 50);
   }, []);
 
   const handleMainMenu = useCallback(() => {

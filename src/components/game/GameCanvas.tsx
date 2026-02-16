@@ -90,6 +90,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Track user override for auto-paddle
   const userOverrideRef = useRef(false);
+  const userOverrideTimerRef = useRef<number | null>(null);
   
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
   useEffect(() => {
@@ -481,20 +482,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // Auto-paddle logic - follow the closest ball (only if user hasn't overridden)
-    if (isAutoPaddle && !userOverrideRef.current) {
-      const activeBalls = balls.filter(b => b.velocity.dy !== 0 || b.velocity.dx !== 0);
-      if (activeBalls.length > 0) {
-        // Find the lowest ball (closest to paddle)
-        const lowestBall = activeBalls.reduce((lowest, ball) => 
-          ball.position.y > lowest.position.y ? ball : lowest
-        );
-        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, lowestBall.position.x - paddle.width / 2));
+    // Auto-paddle logic - follow the closest ball (with user override support)
+    if (isAutoPaddle) {
+      // Reset user override after 1.5 seconds of inactivity
+      if (userOverrideRef.current && userOverrideTimerRef.current === null) {
+        userOverrideTimerRef.current = window.setTimeout(() => {
+          userOverrideRef.current = false;
+          userOverrideTimerRef.current = null;
+        }, 1500);
       }
-    }
-    
-    // Reset user override after a short delay if they stop touching
-    if (!isAutoPaddle) {
+      
+      if (!userOverrideRef.current) {
+        const activeBalls = balls.filter(b => b.velocity.dy !== 0 || b.velocity.dx !== 0);
+        if (activeBalls.length > 0) {
+          // Find the lowest ball (closest to paddle)
+          const lowestBall = activeBalls.reduce((lowest, ball) => 
+            ball.position.y > lowest.position.y ? ball : lowest
+          );
+          paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, lowestBall.position.x - paddle.width / 2));
+        }
+      }
+    } else {
       userOverrideRef.current = false;
     }
 
@@ -542,6 +550,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           y = ball.radius;
           dy = Math.abs(dy);
           audioManager.playWallBounce();
+        }
+
+        // Ensure minimum vertical speed so ball never gets stuck horizontally
+        const speed = Math.sqrt(dx * dx + dy * dy);
+        if (speed > 0) {
+          const minVerticalRatio = 0.25; // At least 25% of speed must be vertical
+          const minVerticalSpeed = speed * minVerticalRatio;
+          if (Math.abs(dy) < minVerticalSpeed) {
+            const sign = dy >= 0 ? 1 : -1;
+            dy = sign * minVerticalSpeed;
+            // Adjust dx to maintain total speed
+            const newDxMag = Math.sqrt(speed * speed - dy * dy);
+            dx = dx >= 0 ? newDxMag : -newDxMag;
+          }
         }
 
         return {
@@ -620,13 +642,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             };
           }
           
+          // Calculate new velocity based on where ball hits paddle
+          let newDx = Math.sin(angle) * speed;
+          let newDy = -Math.abs(Math.cos(angle) * speed);
+          
+          // Ensure minimum vertical speed after paddle bounce
+          const minVert = speed * 0.3;
+          if (Math.abs(newDy) < minVert) {
+            newDy = -minVert;
+            const newDxMag = Math.sqrt(speed * speed - newDy * newDy);
+            newDx = newDx >= 0 ? newDxMag : -newDxMag;
+          }
+          
           return {
             ...ball,
             position: { ...ball.position, y: paddle.y - ball.radius - 2 },
-            velocity: {
-              dx: Math.sin(angle) * speed,
-              dy: -Math.abs(Math.cos(angle) * speed),
-            },
+            velocity: { dx: newDx, dy: newDy },
           };
         }
         return ball;
@@ -720,16 +751,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                 
                 prevBricks.forEach(nearbyBrick => {
                   if (nearbyBrick.id !== brick.id && !nearbyBrick.destroyed && nearbyBrick.type !== 'indestructible') {
-                    // Check if bricks are adjacent (touching or very close)
-                    const nearCenterX = nearbyBrick.x + nearbyBrick.width / 2;
-                    const nearCenterY = nearbyBrick.y + nearbyBrick.height / 2;
+                    // Check if bricks are directly touching (sharing an edge or corner)
+                    const gapX = Math.abs(nearbyBrick.x + nearbyBrick.width / 2 - brickCenterX) - (brick.width / 2 + nearbyBrick.width / 2);
+                    const gapY = Math.abs(nearbyBrick.y + nearbyBrick.height / 2 - brickCenterY) - (brick.height / 2 + nearbyBrick.height / 2);
                     
-                    // Calculate if bricks are touching (within one brick width/height)
-                    const gapX = Math.abs(nearCenterX - brickCenterX) - (brick.width / 2 + nearbyBrick.width / 2);
-                    const gapY = Math.abs(nearCenterY - brickCenterY) - (brick.height / 2 + nearbyBrick.height / 2);
-                    
-                    // Only destroy if truly adjacent (gap <= 2 pixels)
-                    if (gapX <= 2 && gapY <= 2) {
+                    // Brick is touching if both gaps are ≤ 5px (accounts for spacing between bricks)
+                    // gapX ≤ 5 means horizontally adjacent, gapY ≤ 5 means vertically adjacent
+                    if (gapX <= 5 && gapY <= 5) {
                       nearbyBrick.destroyed = true;
                       nearbyBrick.hits = 0;
                       const shockScore = destroyBrick(nearbyBrick);
@@ -912,7 +940,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               break;
             }
             case 'bigball':
-              // Make all balls bigger and one-hit kill for 10 seconds
+              // Make all balls bigger and one-hit kill for 15 seconds
               setBalls(prev => prev.map(ball => ({
                 ...ball,
                 radius: BALL_RADIUS * 1.8,
@@ -924,7 +952,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                   radius: BALL_RADIUS,
                 })));
                 setIsBigBall(false);
-              }, 10000);
+              }, 15000);
               break;
             case 'slow':
               setBalls(prev => prev.map(ball => ({
@@ -934,6 +962,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                   dy: ball.velocity.dy * 0.7,
                 },
               })));
+              // Revert after 15 seconds
+              setTimeout(() => {
+                setBalls(prev => prev.map(ball => {
+                  const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2);
+                  if (speed === 0) return ball;
+                  const factor = ballSpeed / speed;
+                  return { ...ball, velocity: { dx: ball.velocity.dx * factor, dy: ball.velocity.dy * factor } };
+                }));
+              }, 15000);
               break;
             case 'speedup':
               setBalls(prev => prev.map(ball => ({
@@ -943,6 +980,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                   dy: ball.velocity.dy * 1.3,
                 },
               })));
+              // Revert after 15 seconds
+              setTimeout(() => {
+                setBalls(prev => prev.map(ball => {
+                  const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2);
+                  if (speed === 0) return ball;
+                  const factor = ballSpeed / speed;
+                  return { ...ball, velocity: { dx: ball.velocity.dx * factor, dy: ball.velocity.dy * factor } };
+                }));
+              }, 15000);
               break;
             case 'extralife':
               setGameState(prev => ({ ...prev, lives: prev.lives + 1 }));
@@ -1070,27 +1116,94 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.translate(shakeX, shakeY);
     }
 
-    // Clear with deep blue gradient background (matching reference)
+    // Dynamic 4K space background with nebulae, twinkling stars, and planets
+    // Base deep space gradient
     const bgGradient = ctx.createRadialGradient(
-      GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 0,
+      GAME_WIDTH * 0.3, GAME_HEIGHT * 0.2, 0,
       GAME_WIDTH / 2, GAME_HEIGHT * 0.5, GAME_HEIGHT
     );
-    bgGradient.addColorStop(0, 'hsl(215, 60%, 18%)');
-    bgGradient.addColorStop(0.5, 'hsl(215, 65%, 12%)');
-    bgGradient.addColorStop(1, 'hsl(220, 70%, 6%)');
+    bgGradient.addColorStop(0, 'hsl(240, 50%, 12%)');
+    bgGradient.addColorStop(0.3, 'hsl(220, 60%, 8%)');
+    bgGradient.addColorStop(0.7, 'hsl(260, 40%, 6%)');
+    bgGradient.addColorStop(1, 'hsl(230, 70%, 3%)');
     ctx.fillStyle = bgGradient;
     ctx.fillRect(-10, -10, GAME_WIDTH + 20, GAME_HEIGHT + 20);
 
-    // Subtle star/dust particles in background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-    for (let i = 0; i < 30; i++) {
-      const starX = ((i * 137) % GAME_WIDTH);
-      const starY = ((i * 89) % GAME_HEIGHT);
-      const starSize = (i % 3) + 0.5;
+    // Slow-moving nebula clouds
+    const nebulaTime = gameTime * 0.05;
+    // Nebula 1 - purple/magenta
+    const neb1X = GAME_WIDTH * 0.7 + Math.sin(nebulaTime * 0.7) * 30;
+    const neb1Y = GAME_HEIGHT * 0.25 + Math.cos(nebulaTime * 0.5) * 20;
+    const nebGrad1 = ctx.createRadialGradient(neb1X, neb1Y, 0, neb1X, neb1Y, 120);
+    nebGrad1.addColorStop(0, 'hsla(280, 70%, 40%, 0.12)');
+    nebGrad1.addColorStop(0.4, 'hsla(300, 60%, 30%, 0.06)');
+    nebGrad1.addColorStop(1, 'transparent');
+    ctx.fillStyle = nebGrad1;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    
+    // Nebula 2 - blue/cyan
+    const neb2X = GAME_WIDTH * 0.2 + Math.sin(nebulaTime * 0.4 + 2) * 25;
+    const neb2Y = GAME_HEIGHT * 0.6 + Math.cos(nebulaTime * 0.6 + 1) * 15;
+    const nebGrad2 = ctx.createRadialGradient(neb2X, neb2Y, 0, neb2X, neb2Y, 100);
+    nebGrad2.addColorStop(0, 'hsla(200, 80%, 35%, 0.10)');
+    nebGrad2.addColorStop(0.5, 'hsla(220, 60%, 25%, 0.05)');
+    nebGrad2.addColorStop(1, 'transparent');
+    ctx.fillStyle = nebGrad2;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Twinkling stars (static positions, dynamic brightness)
+    for (let i = 0; i < 60; i++) {
+      const starX = ((i * 137 + 17) % GAME_WIDTH);
+      const starY = ((i * 89 + 31) % GAME_HEIGHT);
+      const baseSize = (i % 3) * 0.4 + 0.3;
+      // Twinkle effect - each star has its own phase
+      const twinkle = 0.3 + 0.7 * ((Math.sin(gameTime * (1.5 + (i % 5) * 0.3) + i * 1.7) + 1) / 2);
+      const alpha = twinkle * (0.15 + (i % 4) * 0.1);
+      
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
       ctx.beginPath();
-      ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+      ctx.arc(starX, starY, baseSize, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Bright stars get a cross sparkle
+      if (i % 8 === 0 && twinkle > 0.8) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(starX - 3, starY);
+        ctx.lineTo(starX + 3, starY);
+        ctx.moveTo(starX, starY - 3);
+        ctx.lineTo(starX, starY + 3);
+        ctx.stroke();
+      }
     }
+
+    // Distant rotating planets
+    // Planet 1 - small reddish
+    const p1Angle = gameTime * 0.02;
+    const p1X = GAME_WIDTH * 0.85 + Math.cos(p1Angle) * 5;
+    const p1Y = GAME_HEIGHT * 0.15 + Math.sin(p1Angle) * 3;
+    const p1Grad = ctx.createRadialGradient(p1X - 2, p1Y - 2, 0, p1X, p1Y, 8);
+    p1Grad.addColorStop(0, 'hsl(15, 60%, 50%)');
+    p1Grad.addColorStop(0.7, 'hsl(10, 50%, 35%)');
+    p1Grad.addColorStop(1, 'hsl(5, 40%, 20%)');
+    ctx.fillStyle = p1Grad;
+    ctx.beginPath();
+    ctx.arc(p1X, p1Y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Planet 2 - tiny blue-green
+    const p2Angle = gameTime * 0.015 + 2;
+    const p2X = GAME_WIDTH * 0.12 + Math.cos(p2Angle) * 3;
+    const p2Y = GAME_HEIGHT * 0.08 + Math.sin(p2Angle) * 2;
+    const p2Grad = ctx.createRadialGradient(p2X - 1, p2Y - 1, 0, p2X, p2Y, 5);
+    p2Grad.addColorStop(0, 'hsl(170, 60%, 55%)');
+    p2Grad.addColorStop(0.7, 'hsl(180, 50%, 35%)');
+    p2Grad.addColorStop(1, 'hsl(190, 40%, 20%)');
+    ctx.fillStyle = p2Grad;
+    ctx.beginPath();
+    ctx.arc(p2X, p2Y, 5, 0, Math.PI * 2);
+    ctx.fill();
 
     // Draw shield at bottom
     if (paddle.hasShield) {
@@ -1111,47 +1224,93 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.shadowBlur = 0;
     }
 
-    // Draw plane if present
+    // Draw rocket/plane if present
     if (plane) {
       ctx.save();
       ctx.translate(plane.x, plane.y);
       
-      // Plane body
-      ctx.fillStyle = 'hsl(220, 40%, 50%)';
+      // Rocket flame/exhaust
+      const flameFlicker = Math.sin(gameTime * 20) * 3;
+      ctx.fillStyle = 'hsl(25, 100%, 55%)';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 30, 10, 0, 0, Math.PI * 2);
+      ctx.moveTo(-28, -4);
+      ctx.lineTo(-35 - flameFlicker, 0);
+      ctx.lineTo(-28, 4);
+      ctx.closePath();
       ctx.fill();
-      
-      // Cockpit
-      ctx.fillStyle = 'hsl(200, 100%, 70%)';
+      ctx.fillStyle = 'hsl(50, 100%, 65%)';
       ctx.beginPath();
-      ctx.ellipse(15, -2, 8, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Wings
-      ctx.fillStyle = 'hsl(220, 35%, 45%)';
-      ctx.beginPath();
-      ctx.moveTo(-10, 0);
-      ctx.lineTo(-5, -18);
-      ctx.lineTo(5, -18);
-      ctx.lineTo(10, 0);
+      ctx.moveTo(-28, -2);
+      ctx.lineTo(-32 - flameFlicker * 0.5, 0);
+      ctx.lineTo(-28, 2);
       ctx.closePath();
       ctx.fill();
       
-      // Tail
+      // Rocket body - sleek metallic fuselage
+      const bodyGrad = ctx.createLinearGradient(0, -10, 0, 10);
+      bodyGrad.addColorStop(0, 'hsl(210, 15%, 85%)');
+      bodyGrad.addColorStop(0.3, 'hsl(215, 12%, 70%)');
+      bodyGrad.addColorStop(0.7, 'hsl(220, 15%, 50%)');
+      bodyGrad.addColorStop(1, 'hsl(225, 20%, 35%)');
+      ctx.fillStyle = bodyGrad;
       ctx.beginPath();
-      ctx.moveTo(-25, 0);
-      ctx.lineTo(-30, -10);
-      ctx.lineTo(-20, -10);
+      ctx.moveTo(30, 0);        // Nose tip
+      ctx.quadraticCurveTo(25, -8, -25, -8);
+      ctx.lineTo(-25, 8);
+      ctx.quadraticCurveTo(25, 8, 30, 0);
       ctx.closePath();
       ctx.fill();
       
-      // Power-up indicator
+      // Cockpit window
+      const cockpitGrad = ctx.createRadialGradient(18, -2, 0, 18, -2, 7);
+      cockpitGrad.addColorStop(0, 'hsl(195, 100%, 85%)');
+      cockpitGrad.addColorStop(0.6, 'hsl(200, 90%, 60%)');
+      cockpitGrad.addColorStop(1, 'hsl(210, 80%, 40%)');
+      ctx.fillStyle = cockpitGrad;
+      ctx.beginPath();
+      ctx.ellipse(18, -1, 7, 5, 0, -Math.PI, 0);
+      ctx.fill();
+      
+      // Fins
+      ctx.fillStyle = 'hsl(0, 75%, 50%)';
+      // Top fin
+      ctx.beginPath();
+      ctx.moveTo(-15, -8);
+      ctx.lineTo(-22, -18);
+      ctx.lineTo(-8, -8);
+      ctx.closePath();
+      ctx.fill();
+      // Bottom fin
+      ctx.beginPath();
+      ctx.moveTo(-15, 8);
+      ctx.lineTo(-22, 18);
+      ctx.lineTo(-8, 8);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Nose highlight
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(28, -2);
+      ctx.quadraticCurveTo(20, -7, -20, -7);
+      ctx.stroke();
+      
+      // Power-up indicator (glowing package underneath)
       if (plane.hasPowerUp) {
-        ctx.fillStyle = 'hsl(50, 100%, 60%)';
+        ctx.shadowColor = 'hsl(50, 100%, 60%)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = 'hsl(50, 100%, 55%)';
         ctx.beginPath();
-        ctx.arc(0, 12, 5, 0, Math.PI * 2);
+        ctx.roundRect(-6, 6, 12, 8, 2);
         ctx.fill();
+        ctx.shadowBlur = 0;
+        // Star on package
+        ctx.fillStyle = 'hsl(35, 100%, 40%)';
+        ctx.font = 'bold 7px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('★', 0, 10);
       }
       
       ctx.restore();

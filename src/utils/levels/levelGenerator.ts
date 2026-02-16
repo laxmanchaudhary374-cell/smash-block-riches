@@ -21,7 +21,7 @@ const getDifficultyParams = (level: number) => {
   const maxRows = 10;
   
   return {
-    ballSpeed: 280 + level * 0.8 + tier * 20,
+    ballSpeed: Math.min(280 + level * 0.4 + tier * 8, 380), // Slower ball speed, capped at 380
     maxHits: Math.min(1 + Math.floor(tier / 2), 4),
     explosiveChance: 0.05 + tier * 0.02,
     steelChance: Math.min(0.02 + tier * 0.015, 0.12), // Steel bricks (2-hit)

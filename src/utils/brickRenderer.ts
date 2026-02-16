@@ -706,15 +706,7 @@ const drawBrickTypeIndicator = (
       break;
   }
   
-  // Hit count for multi-hit bricks
-  if (maxHits > 1 && type === 'normal' && hits > 1) {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.lineWidth = 2;
-    ctx.font = 'bold 11px sans-serif';
-    ctx.strokeText(hits.toString(), centerX, centerY);
-    ctx.fillText(hits.toString(), centerX, centerY);
-  }
+  // No hit count numbers on normal bricks (removed per request)
 };
 
 // Draw star shape
