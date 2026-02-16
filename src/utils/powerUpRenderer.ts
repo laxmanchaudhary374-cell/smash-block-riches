@@ -277,20 +277,20 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.stroke();
 };
 
-// Draw magnet icon (horseshoe magnet inside blue circle)
+// Draw magnet icon (large horseshoe magnet inside blue circle)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
   
-  // Horseshoe magnet
-  const magnetSize = size * 0.22;
+  // Horseshoe magnet - BIGGER
+  const magnetSize = size * 0.32;
   
   ctx.save();
   ctx.translate(x, y + magnetSize * 0.1);
   
-  const armWidth = magnetSize * 0.5;
-  const innerRadius = magnetSize * 0.3;
+  const armWidth = magnetSize * 0.45;
+  const innerRadius = magnetSize * 0.35;
   const outerRadius = innerRadius + armWidth;
-  const armHeight = magnetSize * 0.5;
+  const armHeight = magnetSize * 0.55;
   
   // Draw the horseshoe (U shape)
   ctx.beginPath();
@@ -315,8 +315,8 @@ const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   
   // Pole tips (white caps)
   ctx.fillStyle = 'white';
-  ctx.fillRect(-outerRadius, -armHeight - 2, armWidth, 4);
-  ctx.fillRect(innerRadius, -armHeight - 2, armWidth, 4);
+  ctx.fillRect(-outerRadius, -armHeight - 3, armWidth, 5);
+  ctx.fillRect(innerRadius, -armHeight - 3, armWidth, 5);
   
   ctx.restore();
 };
@@ -416,13 +416,13 @@ const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.stroke();
 };
 
-// Draw extra life icon (heart in blue circle)
+// Draw extra life icon (large heart in blue circle)
 const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
   
-  const heartSize = size * 0.22;
+  const heartSize = size * 0.30;
   
-  // Red heart
+  // Red heart - BIGGER
   const heartGrad = ctx.createRadialGradient(x - heartSize * 0.2, y - heartSize * 0.3, 0, x, y, heartSize);
   heartGrad.addColorStop(0, 'hsl(350, 100%, 75%)');
   heartGrad.addColorStop(0.5, 'hsl(350, 90%, 55%)');
@@ -438,7 +438,7 @@ const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   // Highlight
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.beginPath();
-  ctx.arc(x - heartSize * 0.25, y - heartSize * 0.2, heartSize * 0.15, 0, Math.PI * 2);
+  ctx.arc(x - heartSize * 0.25, y - heartSize * 0.2, heartSize * 0.2, 0, Math.PI * 2);
   ctx.fill();
 };
 
