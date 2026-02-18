@@ -4,9 +4,10 @@ import { Heart, Star, Zap } from 'lucide-react';
 
 interface GameUIProps {
   gameState: GameState;
+  persistentCoins?: number;
 }
 
-const GameUI: React.FC<GameUIProps> = ({ gameState }) => {
+const GameUI: React.FC<GameUIProps> = ({ gameState, persistentCoins }) => {
   return (
     <div className="flex justify-between items-center w-full max-w-[400px] mx-auto mb-3 px-1 gap-2">
       {/* Lives Box */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Settings, Trophy, Grid3X3, Volume2, VolumeX, ChevronLeft, Star, Lock } from 'lucide-react';
+import { Play, Settings, Trophy, Grid3X3, Volume2, VolumeX, ChevronLeft, Star, Lock, ShoppingBag, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { getTotalLevels } from '@/utils/levels/index';
@@ -9,17 +9,23 @@ import spaceBackground from '@/assets/space-background.jpg';
 interface MainMenuScreenProps {
   highScore: number;
   unlockedLevel: number;
+  persistentCoins: number;
   onStartGame: (level: number) => void;
   onBack: () => void;
+  onOpenShop: () => void;
+  onOpenWheel: () => void;
 }
 
 type MenuView = 'main' | 'levels' | 'settings';
 
 const MainMenuScreen: React.FC<MainMenuScreenProps> = ({ 
   highScore, 
-  unlockedLevel, 
+  unlockedLevel,
+  persistentCoins,
   onStartGame,
-  onBack 
+  onBack,
+  onOpenShop,
+  onOpenWheel,
 }) => {
   const [currentView, setCurrentView] = useState<MenuView>('main');
   const [sfxVolume, setSfxVolume] = useState(audioManager.sfxVolume * 100);
@@ -49,16 +55,20 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
   };
 
   const renderMainMenu = () => (
-    <div className="flex flex-col items-center gap-4 w-full max-w-xs">
-      {/* High Score Display */}
-      {highScore > 0 && (
-        <div className="flex items-center gap-3 px-6 py-3 bg-black/40 backdrop-blur-sm rounded-xl border border-neon-yellow/30 mb-4">
-          <Trophy className="w-6 h-6 text-neon-yellow" />
-          <span className="font-display text-lg text-neon-yellow">
-            {highScore.toLocaleString()}
-          </span>
+    <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+      {/* Coins + High Score */}
+      <div className="flex items-center gap-3 w-full justify-center mb-2">
+        <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-sm rounded-xl border border-neon-yellow/30">
+          <span className="text-base">🪙</span>
+          <span className="font-display text-base text-neon-yellow">{persistentCoins}</span>
         </div>
-      )}
+        {highScore > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-sm rounded-xl border border-neon-yellow/30">
+            <Trophy className="w-4 h-4 text-neon-yellow" />
+            <span className="font-display text-sm text-neon-yellow">{highScore.toLocaleString()}</span>
+          </div>
+        )}
+      </div>
 
       {/* Continue / Play Button */}
       <button
@@ -96,10 +106,46 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
         </span>
       </button>
 
+      {/* Shop + Lucky Wheel row */}
+      <div className="flex gap-3 w-full">
+        <button
+          onClick={onOpenShop}
+          className="flex-1 px-4 py-3 font-display text-sm font-bold tracking-wider transition-all duration-300 hover:scale-105"
+          style={{
+            background: 'linear-gradient(180deg, hsl(45 100% 45%) 0%, hsl(40 100% 35%) 100%)',
+            borderRadius: '12px',
+            border: '2px solid hsl(50 100% 55%)',
+            boxShadow: '0 0 15px rgba(255,200,0,0.3)',
+            color: 'white',
+          }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <ShoppingBag className="w-4 h-4" />
+            SHOP
+          </span>
+        </button>
+        <button
+          onClick={onOpenWheel}
+          className="flex-1 px-4 py-3 font-display text-sm font-bold tracking-wider transition-all duration-300 hover:scale-105"
+          style={{
+            background: 'linear-gradient(180deg, hsl(320 80% 45%) 0%, hsl(330 80% 35%) 100%)',
+            borderRadius: '12px',
+            border: '2px solid hsl(320 80% 60%)',
+            boxShadow: '0 0 15px rgba(255,0,150,0.25)',
+            color: 'white',
+          }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Gift className="w-4 h-4" />
+            WHEEL
+          </span>
+        </button>
+      </div>
+
       {/* Settings */}
       <button
         onClick={() => setCurrentView('settings')}
-        className="w-full group relative px-8 py-4 font-display text-lg font-bold tracking-wider transition-all duration-300 hover:scale-105"
+        className="w-full group relative px-8 py-3 font-display text-base font-bold tracking-wider transition-all duration-300 hover:scale-105"
         style={{
           background: 'linear-gradient(180deg, hsl(280 80% 50%) 0%, hsl(290 80% 40%) 100%)',
           borderRadius: '12px',
@@ -117,11 +163,12 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
       {/* Back to Title */}
       <button
         onClick={onBack}
-        className="mt-4 px-6 py-2 font-game text-muted-foreground hover:text-foreground transition-colors"
+        className="mt-2 px-6 py-2 font-game text-muted-foreground hover:text-foreground transition-colors"
       >
         ← Back to Title
       </button>
     </div>
+
   );
 
   const renderLevelSelect = () => {
