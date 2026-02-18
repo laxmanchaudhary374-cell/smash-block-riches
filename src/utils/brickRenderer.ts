@@ -632,29 +632,20 @@ const drawBrickTypeIndicator = (
       
     case 'indestructible':
     case 'steel':
-      // Steel X pattern with rivets - show hit count for steel
-      if (type === 'steel' && hits > 0) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.font = 'bold 11px sans-serif';
-        ctx.strokeText(hits.toString(), centerX, centerY);
-        ctx.fillText(hits.toString(), centerX, centerY);
-      } else {
-        ctx.strokeStyle = 'rgba(200, 210, 220, 0.7)';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(x + 10, y + 5);
-        ctx.lineTo(x + width - 10, y + height - 5);
-        ctx.moveTo(x + width - 10, y + 5);
-        ctx.lineTo(x + 10, y + height - 5);
-        ctx.stroke();
-        ctx.shadowColor = 'rgba(150, 170, 200, 0.3)';
-        ctx.shadowBlur = 4;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
+      // Steel X pattern with rivets - NO numbers
+      ctx.strokeStyle = 'rgba(200, 210, 220, 0.7)';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x + 10, y + 5);
+      ctx.lineTo(x + width - 10, y + height - 5);
+      ctx.moveTo(x + width - 10, y + 5);
+      ctx.lineTo(x + 10, y + height - 5);
+      ctx.stroke();
+      ctx.shadowColor = 'rgba(150, 170, 200, 0.3)';
+      ctx.shadowBlur = 4;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
       break;
       
     case 'moving':

@@ -403,7 +403,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   }, [gameState.status, handlePointerMove, ballSpeed]);
   
-  // Auto-fire laser when paddle has laser power-up
+  // Auto-fire laser when paddle has laser power-up - stop when not actively playing
   useEffect(() => {
     // Clear any existing interval first
     if (laserAutoFireRef.current) {
@@ -411,13 +411,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       laserAutoFireRef.current = null;
     }
     
+    // Only fire laser when STRICTLY playing (not levelcomplete, paused, gameover, etc.)
     if (paddle.hasLaser && gameState.status === 'playing') {
       // Fire immediately when getting the power-up
       fireLaser();
       
       // Then continue auto-fire every 300ms
       laserAutoFireRef.current = setInterval(() => {
-        if (paddle.hasLaser) {
+        // Double-check paddle still has laser (prevents firing after level switch)
+        if (paddleRef.current.hasLaser) {
           fireLaser();
         }
       }, 300);
@@ -429,7 +431,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         laserAutoFireRef.current = null;
       }
     };
-  }, [paddle.hasLaser, gameState.status]);
+  }, [paddle.hasLaser, gameState.status, fireLaser]);
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
@@ -1224,67 +1226,88 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.shadowBlur = 0;
     }
 
-    // Draw rocket/plane if present
+    // Draw rocket/plane with monkey if present
     if (plane) {
       ctx.save();
       ctx.translate(plane.x, plane.y);
       
-      // Rocket flame/exhaust
+      // Rocket flame/exhaust (multiple layers for effect)
       const flameFlicker = Math.sin(gameTime * 20) * 3;
+      // Outer flame
       ctx.fillStyle = 'hsl(25, 100%, 55%)';
       ctx.beginPath();
-      ctx.moveTo(-28, -4);
-      ctx.lineTo(-35 - flameFlicker, 0);
-      ctx.lineTo(-28, 4);
+      ctx.moveTo(-28, -5);
+      ctx.lineTo(-40 - flameFlicker, 0);
+      ctx.lineTo(-28, 5);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = 'hsl(50, 100%, 65%)';
+      // Mid flame
+      ctx.fillStyle = 'hsl(40, 100%, 65%)';
       ctx.beginPath();
-      ctx.moveTo(-28, -2);
-      ctx.lineTo(-32 - flameFlicker * 0.5, 0);
-      ctx.lineTo(-28, 2);
+      ctx.moveTo(-28, -3);
+      ctx.lineTo(-35 - flameFlicker * 0.7, 0);
+      ctx.lineTo(-28, 3);
+      ctx.closePath();
+      ctx.fill();
+      // Inner flame (white core)
+      ctx.fillStyle = 'hsl(55, 100%, 85%)';
+      ctx.beginPath();
+      ctx.moveTo(-28, -1.5);
+      ctx.lineTo(-31 - flameFlicker * 0.3, 0);
+      ctx.lineTo(-28, 1.5);
       ctx.closePath();
       ctx.fill();
       
       // Rocket body - sleek metallic fuselage
-      const bodyGrad = ctx.createLinearGradient(0, -10, 0, 10);
-      bodyGrad.addColorStop(0, 'hsl(210, 15%, 85%)');
-      bodyGrad.addColorStop(0.3, 'hsl(215, 12%, 70%)');
-      bodyGrad.addColorStop(0.7, 'hsl(220, 15%, 50%)');
+      const bodyGrad = ctx.createLinearGradient(0, -12, 0, 12);
+      bodyGrad.addColorStop(0, 'hsl(210, 15%, 88%)');
+      bodyGrad.addColorStop(0.25, 'hsl(215, 12%, 72%)');
+      bodyGrad.addColorStop(0.6, 'hsl(220, 15%, 52%)');
       bodyGrad.addColorStop(1, 'hsl(225, 20%, 35%)');
       ctx.fillStyle = bodyGrad;
       ctx.beginPath();
-      ctx.moveTo(30, 0);        // Nose tip
-      ctx.quadraticCurveTo(25, -8, -25, -8);
-      ctx.lineTo(-25, 8);
-      ctx.quadraticCurveTo(25, 8, 30, 0);
+      ctx.moveTo(32, 0);
+      ctx.quadraticCurveTo(28, -10, -26, -10);
+      ctx.lineTo(-26, 10);
+      ctx.quadraticCurveTo(28, 10, 32, 0);
       ctx.closePath();
       ctx.fill();
       
+      // Body stripe
+      ctx.fillStyle = 'hsl(0, 80%, 55%)';
+      ctx.beginPath();
+      ctx.roundRect(-20, -10, 8, 20, 0);
+      ctx.fill();
+      
       // Cockpit window
-      const cockpitGrad = ctx.createRadialGradient(18, -2, 0, 18, -2, 7);
-      cockpitGrad.addColorStop(0, 'hsl(195, 100%, 85%)');
-      cockpitGrad.addColorStop(0.6, 'hsl(200, 90%, 60%)');
-      cockpitGrad.addColorStop(1, 'hsl(210, 80%, 40%)');
+      const cockpitGrad = ctx.createRadialGradient(16, -3, 0, 16, -3, 8);
+      cockpitGrad.addColorStop(0, 'hsl(195, 100%, 88%)');
+      cockpitGrad.addColorStop(0.5, 'hsl(200, 90%, 62%)');
+      cockpitGrad.addColorStop(1, 'hsl(210, 80%, 42%)');
       ctx.fillStyle = cockpitGrad;
       ctx.beginPath();
-      ctx.ellipse(18, -1, 7, 5, 0, -Math.PI, 0);
+      ctx.ellipse(16, -1, 9, 6, 0, -Math.PI, 0);
+      ctx.fill();
+      // Window shine
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath();
+      ctx.ellipse(13, -4, 4, 2, -0.3, 0, Math.PI * 2);
       ctx.fill();
       
       // Fins
-      ctx.fillStyle = 'hsl(0, 75%, 50%)';
+      ctx.fillStyle = 'hsl(220, 70%, 45%)';
       // Top fin
       ctx.beginPath();
-      ctx.moveTo(-15, -8);
-      ctx.lineTo(-22, -18);
-      ctx.lineTo(-8, -8);
+      ctx.moveTo(-16, -10);
+      ctx.lineTo(-24, -22);
+      ctx.lineTo(-8, -10);
       ctx.closePath();
       ctx.fill();
       // Bottom fin
       ctx.beginPath();
-      ctx.moveTo(-15, 8);
-      ctx.lineTo(-22, 18);
-      ctx.lineTo(-8, 8);
+      ctx.moveTo(-16, 10);
+      ctx.lineTo(-24, 22);
+      ctx.lineTo(-8, 10);
       ctx.closePath();
       ctx.fill();
       
@@ -1292,25 +1315,106 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(28, -2);
-      ctx.quadraticCurveTo(20, -7, -20, -7);
+      ctx.moveTo(30, -2);
+      ctx.quadraticCurveTo(22, -9, -22, -9);
+      ctx.stroke();
+
+      // === MONKEY on top of rocket ===
+      // Monkey body (brown)
+      ctx.fillStyle = 'hsl(25, 60%, 40%)';
+      ctx.beginPath();
+      ctx.ellipse(8, -18, 7, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Monkey head
+      ctx.fillStyle = 'hsl(25, 55%, 45%)';
+      ctx.beginPath();
+      ctx.arc(8, -27, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Monkey face (lighter)
+      ctx.fillStyle = 'hsl(28, 50%, 62%)';
+      ctx.beginPath();
+      ctx.ellipse(8, -25, 5, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Monkey eyes
+      ctx.fillStyle = 'hsl(240, 30%, 15%)';
+      ctx.beginPath();
+      ctx.arc(5, -28, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(11, -28, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Eye shines
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(5.6, -28.5, 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(11.6, -28.5, 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Monkey smile
+      ctx.strokeStyle = 'hsl(240, 30%, 20%)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(8, -24, 2.5, 0.2, Math.PI - 0.2);
       ctx.stroke();
       
-      // Power-up indicator (glowing package underneath)
+      // Monkey ears
+      ctx.fillStyle = 'hsl(25, 55%, 45%)';
+      ctx.beginPath();
+      ctx.arc(0, -27, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(16, -27, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'hsl(350, 50%, 65%)';
+      ctx.beginPath();
+      ctx.arc(0, -27, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(16, -27, 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Monkey arms holding the package
+      ctx.strokeStyle = 'hsl(25, 55%, 40%)';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(2, -16);
+      ctx.lineTo(-3, -8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(14, -16);
+      ctx.lineTo(19, -8);
+      ctx.stroke();
+      
+      // Power-up package (what monkey holds)
       if (plane.hasPowerUp) {
         ctx.shadowColor = 'hsl(50, 100%, 60%)';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 12;
         ctx.fillStyle = 'hsl(50, 100%, 55%)';
         ctx.beginPath();
-        ctx.roundRect(-6, 6, 12, 8, 2);
+        ctx.roundRect(-4, 8, 14, 10, 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-        // Star on package
-        ctx.fillStyle = 'hsl(35, 100%, 40%)';
-        ctx.font = 'bold 7px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('★', 0, 10);
+        // Ribbon cross on package
+        ctx.strokeStyle = 'hsl(0, 80%, 55%)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(3, 8); ctx.lineTo(3, 18);
+        ctx.moveTo(-4, 13); ctx.lineTo(10, 13);
+        ctx.stroke();
+        // Bow
+        ctx.fillStyle = 'hsl(0, 80%, 60%)';
+        ctx.beginPath();
+        ctx.ellipse(1, 8, 3, 2, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(5, 8, 3, 2, 0.5, 0, Math.PI * 2);
+        ctx.fill();
       }
       
       ctx.restore();

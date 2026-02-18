@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Music, Zap } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { audioManager } from '@/utils/audioManager';
@@ -12,14 +12,13 @@ const AudioControls: React.FC<AudioControlsProps> = ({ isPlaying }) => {
   const [sfxVolume, setSfxVolume] = useState(audioManager.sfxVolume * 100);
   const [musicVolume, setMusicVolume] = useState(audioManager.musicVolume * 100);
   const [isMuted, setIsMuted] = useState(audioManager.isMuted);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize audio on first interaction
     const initAudio = async () => {
       await audioManager.init();
       await audioManager.resume();
     };
-    
     initAudio();
   }, []);
 
@@ -30,6 +29,22 @@ const AudioControls: React.FC<AudioControlsProps> = ({ isPlaying }) => {
       audioManager.stopBackgroundMusic();
     }
   }, [isPlaying]);
+
+  // Close panel when clicking outside
+  useEffect(() => {
+    if (!isExpanded) return;
+    const handleClick = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('touchstart', handleClick as any);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('touchstart', handleClick as any);
+    };
+  }, [isExpanded]);
 
   const handleSfxChange = (value: number[]) => {
     const vol = value[0];
@@ -49,7 +64,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({ isPlaying }) => {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-50" ref={panelRef}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
